@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import Image from "next/image";
+import { signOut } from "next-auth/react";
 
 const navigation = [
   { name: "Dashboard Overview", href: "/", icon: LayoutDashboard },
@@ -31,10 +32,28 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLogoutOpen, setIsLogoutOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const handleConfirmLogout = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      await signOut({ redirect: false });
+    } catch (error) {
+      console.error("Sign out error:", error);
+    } finally {
+      setIsSigningOut(false);
+      setIsLogoutOpen(false);
+      setIsMobileMenuOpen(false);
+      router.replace("/login");
+    }
   };
 
   return (
@@ -132,8 +151,61 @@ export function Sidebar() {
           })}
         </nav>
 
-       
+        {/* Logout */}
+        <div className="px-4 pb-6">
+          <button
+            type="button"
+            onClick={() => setIsLogoutOpen(true)}
+            className="w-full rounded-[6px] border border-red-500 px-4 py-2.5 text-sm font-semibold text-red-500 transition hover:bg-red-50"
+          >
+            Logout
+          </button>
+        </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {isLogoutOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setIsLogoutOpen(false)}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="logout-title"
+            className="relative w-full max-w-[420px] rounded-[12px] bg-white p-6 shadow-xl"
+          >
+            <h3
+              id="logout-title"
+              className="text-lg font-semibold text-slate-900"
+            >
+              Confirm Logout
+            </h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Are you sure you want to sign out?
+            </p>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsLogoutOpen(false)}
+                className="rounded-[6px] border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmLogout}
+                disabled={isSigningOut}
+                className="rounded-[6px] bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isSigningOut ? "Signing out..." : "Logout"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
