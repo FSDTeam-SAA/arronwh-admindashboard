@@ -19,6 +19,7 @@ const data = [
   { month: 'Jan', value: 80, date: 'January 2026' },
 ]
 
+//eslint-disable-next-line 
 const CustomTooltip = (props: any) => {
   const { active, payload } = props
   if (active && payload && payload.length) {

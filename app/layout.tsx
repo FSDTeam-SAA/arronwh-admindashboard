@@ -25,7 +25,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${poppins.className}`}>
+      <body className={`${poppins.className} bg-[#F0F3F6]`}>
         <NextTopLoader color="#FFDE59" height={3} showSpinner={false} />
         <QueryClientProvider>
           <Toaster richColors position="top-right" />
