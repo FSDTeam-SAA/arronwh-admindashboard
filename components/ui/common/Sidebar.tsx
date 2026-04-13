@@ -8,7 +8,6 @@ import {
   FileText,
   CalendarCheck,
   Wrench,
-  ListChecks,
   Package,
   HelpCircle,
   Settings,
@@ -21,12 +20,12 @@ import { signOut } from "next-auth/react";
 
 const navigation = [
   { name: "Dashboard Overview", href: "/", icon: LayoutDashboard },
-  { name: "Quote Generated", href: "/all-product", icon: FileText },
-  { name: "Booking Management", href: "/all-treatment", icon: CalendarCheck },
+  { name: "Quote Generated", href: "/quotes", icon: FileText },
+  { name: "Booking Management", href: "/bookings", icon: CalendarCheck },
   { name: "Service Management", href: "/benefit-details", icon: Wrench },
-  { name: "Quiz Management", href: "/all-users", icon: ListChecks },
-  { name: "Controls & Extras Management", href: "/order-history", icon: Package },
-  { name: "FAQ Management", href: "/contact-messages", icon: HelpCircle },
+  // { name: "Quiz Management", href: "/all-users", icon: ListChecks },
+  { name: "Controls & Extras Management", href: "/controls-extras", icon: Package },
+  { name: "FAQ Management", href: "/faq", icon: HelpCircle },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -133,7 +132,7 @@ export function Sidebar() {
               >
                 <item.icon
                   className={cn(
-                    "h-[38px] w-[18px] transition-colors duration-200 flex-shrink-0",
+                    "h-[28px] w-[18px] transition-colors duration-200 flex-shrink-0",
                     isActive ? "text-slate-900" : "text-slate-700",
                   )}
                 />
