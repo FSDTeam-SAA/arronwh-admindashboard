@@ -7,3 +7,21 @@
     text-wrap: balance;
   }
 }
+
+.quill-editor .ql-toolbar {
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 10px 12px;
+}
+
+.quill-editor .ql-container {
+  border: none;
+  min-height: 120px;
+  background: #f8fafc;
+}
+
+.quill-editor .ql-editor {
+  font-size: 14px;
+  color: #2d3d4d;
+  padding: 12px;
+}
