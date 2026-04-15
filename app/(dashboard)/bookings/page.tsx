@@ -2,12 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  ChevronRight,
-  ChevronDown,
-  Eye,
-  Trash2,
-} from "lucide-react";
+import { ChevronRight, ChevronDown, Eye, Trash2, X } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -17,152 +13,97 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { CustomPagination } from "@/components/ui/common/CustomPagination";
 import { BookingDetailsModal } from "./_components/BookingDetailsModal";
+import { toast } from "sonner";
 
-type BookingItem = {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  date: string;
-  revenue: string;
-  bookingFor: "Survey" | "Installation";
-  status: "Pending" | "Confirmation" | "Cancellation";
+// ==================== TYPES ====================
+
+type PersonalInfo = {
+  title?: string;
+  fastName?: string;
+  sureName?: string;
+  email?: string;
+  mobleNumber?: string;
 };
 
-const bookingData: BookingItem[] = [
-  {
-    id: 1,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-    revenue: "$00",
-    bookingFor: "Survey",
-    status: "Pending",
-  },
-  {
-    id: 2,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-    revenue: "$00",
-    bookingFor: "Survey",
-    status: "Pending",
-  },
-  {
-    id: 3,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-    revenue: "$00",
-    bookingFor: "Survey",
-    status: "Pending",
-  },
-  {
-    id: 4,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-    revenue: "£4,768",
-    bookingFor: "Installation",
-    status: "Confirmation",
-  },
-  {
-    id: 5,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-    revenue: "£4,768",
-    bookingFor: "Installation",
-    status: "Confirmation",
-  },
-  {
-    id: 6,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-    revenue: "£4,768",
-    bookingFor: "Installation",
-    status: "Cancellation",
-  },
-  {
-    id: 7,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-    revenue: "£4,768",
-    bookingFor: "Installation",
-    status: "Cancellation",
-  },
-  {
-    id: 8,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-    revenue: "£4,768",
-    bookingFor: "Installation",
-    status: "Confirmation",
-  },
-  {
-    id: 9,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-    revenue: "£4,768",
-    bookingFor: "Installation",
-    status: "Confirmation",
-  },
-  {
-    id: 10,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-    revenue: "£4,768",
-    bookingFor: "Installation",
-    status: "Confirmation",
-  },
-  {
-    id: 11,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-    revenue: "£4,768",
-    bookingFor: "Installation",
-    status: "Confirmation",
-  },
-  {
-    id: 12,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-    revenue: "£4,768",
-    bookingFor: "Installation",
-    status: "Cancellation",
-  },
-];
+type QuizAnswer = {
+  question: string;
+  answer: string;
+};
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50];
+type Quote = {
+  _id?: string;
+  personalInfo?: PersonalInfo;
+  quizAnswers?: QuizAnswer[];
+  surveyDate?: string;
+  installDate?: string;
+  installAddress?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type BookingStatusApi = "pending" | "confirmed" | "cancelled";
+type BookingStatusUi = "Pending" | "Confirmation" | "Cancellation";
+type BookingForUi = "Survey" | "Installation";
+
+type BookingItem = {
+  _id: string;
+  quote?: Quote;
+  price?: number;
+  status: BookingStatusApi;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+type ApiData = {
+  data: BookingItem[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+type ApiResponse = {
+  statusCode: number;
+  success: boolean;
+  message: string;
+  data: ApiData;
+};
+
+type DeleteBookingResponse = {
+  success?: boolean;
+  status?: boolean;
+  message?: string;
+};
+
+// ==================== COMPONENTS ====================
+
+function BookingSkeletonRow() {
+  return (
+    <TableRow className="border-b border-[#EDF1F4]">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <TableCell key={i} className="px-4 py-[14px]">
+          <div className="h-6 w-full animate-pulse rounded-md bg-gray-200" />
+        </TableCell>
+      ))}
+    </TableRow>
+  );
+}
 
 function BookingForBadge({
   value,
   onChange,
 }: {
-  value: BookingItem["bookingFor"];
-  onChange: (value: BookingItem["bookingFor"]) => void;
+  value: BookingForUi;
+  onChange: (value: BookingForUi) => void;
 }) {
   const styles =
     value === "Survey"
@@ -173,9 +114,7 @@ function BookingForBadge({
     <div className="relative w-[190px]">
       <select
         value={value}
-        onChange={(event) =>
-          onChange(event.target.value as BookingItem["bookingFor"])
-        }
+        onChange={(e) => onChange(e.target.value as BookingForUi)}
         className={cn(
           "h-[35px] w-full appearance-none rounded-full px-4 pr-10 text-[16px] font-medium outline-none",
           styles
@@ -193,8 +132,8 @@ function StatusBadge({
   value,
   onChange,
 }: {
-  value: BookingItem["status"];
-  onChange: (value: BookingItem["status"]) => void;
+  value: BookingStatusUi;
+  onChange: (value: BookingStatusUi) => void;
 }) {
   const styles =
     value === "Pending"
@@ -207,9 +146,7 @@ function StatusBadge({
     <div className="relative w-[190px]">
       <select
         value={value}
-        onChange={(event) =>
-          onChange(event.target.value as BookingItem["status"])
-        }
+        onChange={(e) => onChange(e.target.value as BookingStatusUi)}
         className={cn(
           "h-[35px] w-full appearance-none rounded-full px-4 pr-10 text-[16px] font-medium outline-none",
           styles
@@ -224,50 +161,179 @@ function StatusBadge({
   );
 }
 
+// ==================== HELPERS ====================
+
+function getApiBaseUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_API_URL ||
+    ""
+  );
+}
+
+function getFullName(personalInfo?: PersonalInfo): string {
+  if (!personalInfo) return "N/A";
+
+  const firstName = personalInfo.fastName?.trim() || "";
+  const lastName = personalInfo.sureName?.trim() || "";
+  const fullName = `${firstName} ${lastName}`.trim();
+
+  return fullName || "N/A";
+}
+
+function formatDate(dateString?: string): string {
+  if (!dateString) return "N/A";
+
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "Invalid Date";
+
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatPrice(price?: number): string {
+  if (typeof price !== "number" || Number.isNaN(price)) {
+    return "£0";
+  }
+
+  return `£${price.toLocaleString()}`;
+}
+
+function getBookingFor(quote?: Quote): BookingForUi {
+  if (!quote) return "Survey";
+  return quote.surveyDate ? "Survey" : "Installation";
+}
+
+function getStatusForBadge(status: BookingStatusApi): BookingStatusUi {
+  if (status === "confirmed") return "Confirmation";
+  if (status === "cancelled") return "Cancellation";
+  return "Pending";
+}
+
+async function fetchBookings(page: number, pageSize: number): Promise<ApiResponse> {
+  const baseUrl = getApiBaseUrl();
+
+  if (!baseUrl) {
+    throw new Error(
+      "Missing API base URL. Please set NEXT_PUBLIC_API_BASE_URL or NEXT_PUBLIC_BACKEND_API_URL."
+    );
+  }
+
+  const res = await fetch(`${baseUrl}/booking?page=${page}&limit=${pageSize}`, {
+    method: "GET",
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch bookings: ${res.status} ${res.statusText}`);
+  }
+
+  const json = (await res.json()) as ApiResponse;
+
+  if (!json.success) {
+    throw new Error(json.message || "Failed to fetch bookings");
+  }
+
+  return json;
+}
+
+// ==================== MAIN COMPONENT ====================
+
 export default function BookingManagementPage() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [bookings, setBookings] = useState(bookingData);
-  const [openDetails, setOpenDetails] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState<BookingItem | null>(null);
+  const queryClient = useQueryClient();
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [openDetails, setOpenDetails] = useState<boolean>(false);
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+  const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
+  const [deleteTarget, setDeleteTarget] = useState<BookingItem | null>(null);
 
-  const totalItems = bookings.length;
-  const totalPages = Math.ceil(totalItems / pageSize);
+  const { data, isLoading, isError, error, isFetching } = useQuery<
+    ApiResponse,
+    Error
+  >({
+    queryKey: ["bookings", page, pageSize],
+    queryFn: () => fetchBookings(page, pageSize),
+    staleTime: 1000 * 60 * 2,
+    placeholderData: (previousData) => previousData,
+  });
 
-  const paginatedData = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return bookings.slice(start, start + pageSize);
-  }, [bookings, page, pageSize]);
+  const bookings: BookingItem[] = useMemo(() => {
+    return data?.data?.data ?? [];
+  }, [data]);
 
-  const handleBookingForChange = (
-    id: number,
-    nextValue: BookingItem["bookingFor"]
-  ) => {
-    setBookings((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, bookingFor: nextValue } : item
-      )
-    );
-  };
-
-  const handleStatusChange = (
-    id: number,
-    nextValue: BookingItem["status"]
-  ) => {
-    setBookings((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, status: nextValue } : item
-      )
-    );
-  };
-
-  const handleOpenDetails = (item: BookingItem) => {
-    setSelectedBooking(item);
-    setOpenDetails(true);
-  };
+  const totalItems = data?.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   const startItem = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
   const endItem = Math.min(page * pageSize, totalItems);
+
+  const handleOpenDetails = (item: BookingItem) => {
+    setSelectedBookingId(item._id);
+    setOpenDetails(true);
+  };
+
+  const deleteBookingMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const baseUrl = getApiBaseUrl();
+      if (!baseUrl) {
+        throw new Error(
+          "Missing API base URL. Please set NEXT_PUBLIC_API_BASE_URL or NEXT_PUBLIC_BACKEND_API_URL."
+        );
+      }
+
+      const res = await fetch(`${baseUrl}/booking/${id}`, {
+        method: "DELETE",
+      });
+
+      const json = (await res.json().catch(() => null)) as DeleteBookingResponse | null;
+      const hasExplicitFailure = json?.success === false || json?.status === false;
+
+      if (!res.ok || hasExplicitFailure) {
+        throw new Error(json?.message || "Failed to delete booking.");
+      }
+
+      return json;
+    },
+    onSuccess: () => {
+      toast.success("Booking deleted successfully.");
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      setOpenDeleteModal(false);
+      setDeleteTarget(null);
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete booking."
+      );
+    },
+  });
+
+  const handleDeleteOpen = (item: BookingItem) => {
+    setDeleteTarget(item);
+    setOpenDeleteModal(true);
+  };
+
+  const handleDeleteClose = (nextOpen: boolean) => {
+    setOpenDeleteModal(nextOpen);
+    if (!nextOpen) {
+      setDeleteTarget(null);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return;
+    deleteBookingMutation.mutate(deleteTarget._id);
+  };
+
+  const deleteTargetName = deleteTarget
+    ? getFullName(deleteTarget.quote?.personalInfo)
+    : "";
+  const deleteLabel = deleteTargetName && deleteTargetName !== "N/A"
+    ? deleteTargetName
+    : "this booking";
 
   return (
     <>
@@ -292,75 +358,130 @@ export default function BookingManagementPage() {
               <Table className="min-w-[1180px]">
                 <TableHeader>
                   <TableRow className="border-none bg-[#F4F7F9] hover:bg-[#F4F7F9]">
-                    <TableHead className="h-[42px] rounded-l-[8px] px-4 text-[16px] font-medium text-[#00A56F]">Name</TableHead>
-                    <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">Email</TableHead>
-                    <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">Phone</TableHead>
-                    <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">Date</TableHead>
-                    <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">Revenue</TableHead>
-                    <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">Booking for</TableHead>
-                    <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">Status</TableHead>
-                    <TableHead className="h-[42px] rounded-r-[8px] px-4 text-[16px] font-medium text-[#00A56F]">Action</TableHead>
+                    <TableHead className="h-[42px] rounded-l-[8px] px-4 text-[16px] font-medium text-[#00A56F]">
+                      Name
+                    </TableHead>
+                    <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">
+                      Email
+                    </TableHead>
+                    <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">
+                      Phone
+                    </TableHead>
+                    <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">
+                      Date
+                    </TableHead>
+                    <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">
+                      Price
+                    </TableHead>
+                    <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">
+                      Booking for
+                    </TableHead>
+                    <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">
+                      Status
+                    </TableHead>
+                    <TableHead className="h-[42px] rounded-r-[8px] px-4 text-[16px] font-medium text-[#00A56F]">
+                      Action
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
 
                 <TableBody>
-                  {paginatedData.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      className="border-b border-[#EDF1F4] hover:bg-transparent"
-                    >
-                      <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
-                        {item.name}
-                      </TableCell>
-                      <TableCell className="max-w-[190px] px-4 py-[14px] text-[16px] font-medium leading-6 text-[#2D3D4D]">
-                        <span className="break-words">{item.email}</span>
-                      </TableCell>
-                      <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
-                        {item.phone}
-                      </TableCell>
-                      <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
-                        {item.date}
-                      </TableCell>
-                      <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
-                        {item.revenue}
-                      </TableCell>
-                      <TableCell className="px-4 py-[14px]">
-                        <BookingForBadge
-                          value={item.bookingFor}
-                          onChange={(nextValue) =>
-                            handleBookingForChange(item.id, nextValue)
-                          }
-                        />
-                      </TableCell>
-                      <TableCell className="px-4 py-[14px]">
-                        <StatusBadge
-                          value={item.status}
-                          onChange={(nextValue) =>
-                            handleStatusChange(item.id, nextValue)
-                          }
-                        />
-                      </TableCell>
-                      <TableCell className="px-4 py-[14px]">
-                        <div className="flex items-center gap-3">
-                          <Button
-                            type="button"
-                            onClick={() => handleOpenDetails(item)}
-                            className="h-[40px] rounded-full bg-[#00A56F1A] px-3 text-[16px] font-semibold text-[#12A150] hover:bg-[#dcf4e7]"
-                          >
-                            <Eye className="mr-1.5 h-3.5 w-3.5" />
-                            View Details
-                          </Button>
-
-                          <button
-                            type="button"
-                            className="flex h-8 w-8 items-center justify-center rounded-full text-[#F5D64E] transition hover:bg-[#FFF8DB]"
-                          >
-                            <Trash2 className="h-5 w-5 text-[#FFDE59]" />
-                          </button>
-                        </div>
+                  {isLoading ? (
+                    Array.from({ length: pageSize }).map((_, i) => (
+                      <BookingSkeletonRow key={i} />
+                    ))
+                  ) : isError ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={8}
+                        className="h-32 text-center text-red-600"
+                      >
+                        Failed to load bookings: {error.message}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : bookings.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={8}
+                        className="h-32 text-center text-[#64748B]"
+                      >
+                        No bookings found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    bookings.map((item) => {
+                      const personalInfo = item.quote?.personalInfo;
+                      const name = getFullName(personalInfo);
+                      const email = personalInfo?.email?.trim() || "N/A";
+                      const phone = personalInfo?.mobleNumber?.trim() || "N/A";
+                      const date =
+                        item.quote?.surveyDate ||
+                        item.quote?.installDate ||
+                        item.createdAt;
+
+                      return (
+                        <TableRow
+                          key={item._id}
+                          className="border-b border-[#EDF1F4] hover:bg-transparent"
+                        >
+                          <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
+                            {name}
+                          </TableCell>
+
+                          <TableCell className="max-w-[190px] px-4 py-[14px] text-[16px] font-medium leading-6 text-[#2D3D4D]">
+                            <span className="break-words">{email}</span>
+                          </TableCell>
+
+                          <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
+                            {phone}
+                          </TableCell>
+
+                          <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
+                            {formatDate(date)}
+                          </TableCell>
+
+                          <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
+                            {formatPrice(item.price)}
+                          </TableCell>
+
+                          <TableCell className="px-4 py-[14px]">
+                            <BookingForBadge
+                              value={getBookingFor(item.quote)}
+                              onChange={() => {}}
+                            />
+                          </TableCell>
+
+                          <TableCell className="px-4 py-[14px]">
+                            <StatusBadge
+                              value={getStatusForBadge(item.status)}
+                              onChange={() => {}}
+                            />
+                          </TableCell>
+
+                          <TableCell className="px-4 py-[14px]">
+                            <div className="flex items-center gap-3">
+                              <Button
+                                type="button"
+                                onClick={() => handleOpenDetails(item)}
+                                className="h-[40px] rounded-full bg-[#00A56F1A] px-3 text-[16px] font-semibold text-[#12A150] hover:bg-[#dcf4e7]"
+                              >
+                                <Eye className="mr-1.5 h-3.5 w-3.5" />
+                                View Details
+                              </Button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteOpen(item)}
+                                className="flex h-8 w-8 items-center justify-center rounded-full text-[#F5D64E] transition hover:bg-[#FFF8DB]"
+                              >
+                                <Trash2 className="h-5 w-5 text-[#FFDE59]" />
+                              </button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -368,13 +489,14 @@ export default function BookingManagementPage() {
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-[13px] font-medium text-[#64748B]">
                 Showing {startItem} to {endItem} of {totalItems} results
+                {isFetching && !isLoading ? " • updating..." : ""}
               </p>
 
               <CustomPagination
                 currentPage={page}
                 totalPages={totalPages}
                 pageSize={pageSize}
-                pageSizeOptions={PAGE_SIZE_OPTIONS}
+                pageSizeOptions={[10, 25, 50]}
                 onPageChange={setPage}
                 onPageSizeChange={(size) => {
                   setPageSize(size);
@@ -389,8 +511,49 @@ export default function BookingManagementPage() {
       <BookingDetailsModal
         open={openDetails}
         onOpenChange={setOpenDetails}
-        booking={selectedBooking}
+        bookingId={selectedBookingId}
       />
+
+      <Dialog open={openDeleteModal} onOpenChange={handleDeleteClose}>
+        <DialogPortal>
+          <DialogOverlay className="bg-[#2D3D4DCC]" />
+
+          <DialogContent className="w-[420px] max-w-[92vw] sm:max-w-[92vw] gap-0 rounded-[16px] border-none bg-white p-6 text-center shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#F4F7F9] text-[#F5D64E]">
+              <Trash2 className="h-6 w-6" />
+            </div>
+
+            <DialogTitle className="mt-4 text-[18px] font-semibold text-[#2D3D4D]">
+              Are you sure?
+            </DialogTitle>
+            <p className="mt-2 text-[13px] text-[#64748B]">
+              You want to delete {deleteLabel} from this Dashboard.
+            </p>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleDeleteClose(false)}
+                disabled={deleteBookingMutation.isPending}
+                className="h-[40px] rounded-[10px] border border-[#F5D64E] bg-transparent px-6 text-[14px] font-semibold text-[#F5D64E] hover:bg-transparent"
+              >
+                <X className="mr-2 h-4 w-4" />
+                Cancel
+              </Button>
+
+              <Button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={deleteBookingMutation.isPending}
+                className="h-[40px] rounded-[10px] bg-[#F5D64E] px-6 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#edcf47]"
+              >
+                {deleteBookingMutation.isPending ? "Deleting..." : "Delete"}
+              </Button>
+            </div>
+          </DialogContent>
+        </DialogPortal>
+      </Dialog>
     </>
   );
 }
