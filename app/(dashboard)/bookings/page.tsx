@@ -64,8 +64,7 @@ type BookingItem = {
   updatedAt?: string;
 };
 
-type ApiData = {
-  data: BookingItem[];
+type ApiMeta = {
   total: number;
   page: number;
   limit: number;
@@ -75,7 +74,8 @@ type ApiResponse = {
   statusCode: number;
   success: boolean;
   message: string;
-  data: ApiData;
+  meta: ApiMeta;
+  data: BookingItem[];
 };
 
 type DeleteBookingResponse = {
@@ -262,10 +262,10 @@ export default function BookingManagementPage() {
   });
 
   const bookings: BookingItem[] = useMemo(() => {
-    return data?.data?.data ?? [];
+    return data?.data ?? [];
   }, [data]);
 
-  const totalItems = data?.data?.total ?? 0;
+  const totalItems = data?.meta?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   const startItem = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;

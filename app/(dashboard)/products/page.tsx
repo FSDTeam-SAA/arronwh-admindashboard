@@ -5,7 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   ChevronRight,
-  ChevronRightIcon,
   Pencil,
   Trash2,
   X,
@@ -15,6 +14,7 @@ import {
   Flame,
   Ruler,
   Plus,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -36,22 +36,30 @@ type ProductItem = {
   systemName?: string;
   productLabel?: string;
   title: string;
+  boilerAbility: string;
+  topBadge?: string;
+  badgeBubble?: string;
   tags: string[];
   images: string[];
-  subtitle: string;
-  bullets: string[];
+  summaryTitle: string;
+  summaryPoints: string[];
   specs: {
     label: string;
     value: string;
-    icon?: "warranty" | "flow" | "heat" | "size";
   }[];
   payToday: string;
-  oldPayToday?: string;
+  payTodayOld?: string;
   monthlyCost: string;
-  oldMonthlyCost?: string;
-  discountLabel: string;
+  monthlyCostOld?: string;
+  discountTitle: string;
   discountValue: string;
   raw?: ProductApiItem;
+};
+
+type ApiBoilerFeature = {
+  title?: string;
+  value?: string;
+  details?: string;
 };
 
 type ProductApiItem = {
@@ -66,7 +74,8 @@ type ProductApiItem = {
   payablePrice?: number;
   monthlyPrice?: number;
   boilerAbility?: string;
-  boilerFeatures?: Array<{ title?: string; details?: string; value?: string } | string>;
+  boilerIncludedData?: string;
+  boilerFeatures?: Array<ApiBoilerFeature | string>;
 };
 
 type ProductsApiResponse = {
@@ -81,133 +90,133 @@ type ProductsApiResponse = {
   data: ProductApiItem[];
 };
 
-function TagBadge({ label, blue = false }: { label: string; blue?: boolean }) {
+function Tag({ label }: { label: string }) {
+  const isFinance = label.toLowerCase().includes("finance");
   return (
-    <span
+    <div
       className={cn(
-        "inline-flex h-[32px] items-center rounded-full px-4 text-[14px] font-medium",
-        blue ? "bg-[#6EC1F3] text-[#2D3D4D]" : "bg-[#F5D64E] text-[#2D3D4D]"
+        "inline-flex h-[38px] items-center justify-center rounded-full px-3 text-[11px] sm:text-[16px] font-medium",
+        isFinance ? "bg-[#6EC1F3] text-[#2D3D4D]" : "bg-[#F5D64E] text-[#2D3D4D]"
       )}
     >
+      {label.toLowerCase().includes("popular") ? (
+        <Star className="mr-1 h-3.5 w-3.5 fill-current" />
+      ) : null}
       {label}
-    </span>
+    </div>
   );
 }
 
-function SpecIcon({
-  type,
-}: {
-  type?: "warranty" | "flow" | "heat" | "size";
-}) {
-  if (type === "warranty") return <ShieldCheck className="h-4 w-4 text-[#64748B]" />;
-  if (type === "flow") return <CircleDollarSign className="h-4 w-4 text-[#64748B]" />;
-  if (type === "heat") return <Flame className="h-4 w-4 text-[#64748B]" />;
-  if (type === "size") return <Ruler className="h-4 w-4 text-[#64748B]" />;
-  return null;
+function SpecIcon({ label }: { label: string }) {
+  const lowered = label.toLowerCase();
+  if (lowered.includes("warranty")) return <ShieldCheck className="h-4 w-4 text-[#64748B]" />;
+  if (lowered.includes("flow")) return <CircleDollarSign className="h-4 w-4 text-[#64748B]" />;
+  if (lowered.includes("heating")) return <Flame className="h-4 w-4 text-[#64748B]" />;
+  return <Ruler className="h-4 w-4 text-[#64748B]" />;
 }
 
-const isValidImageSrc = (src?: string) => {
-  if (!src) return false;
-  return (
-    src.startsWith("http://") ||
-    src.startsWith("https://") ||
-    src.startsWith("/")
-  );
+const FALLBACK_IMAGE = "/hitterpng.png";
+
+const stripHtml = (value?: string) =>
+  value
+    ?.replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim() ?? "";
+
+const formatBoilerAbilityShort = (value: string) => {
+  const cleaned = value.replace(/\s+/g, " ").trim();
+  if (!cleaned) return "";
+
+  const parts = cleaned.split(" ");
+  if (parts.length <= 2) return cleaned;
+
+  const kwPartIndex = parts.findIndex((part) => /kw$/i.test(part));
+  if (kwPartIndex > 0 && /\d/.test(parts[kwPartIndex - 1])) {
+    return `${parts[kwPartIndex - 1]} ${parts[kwPartIndex]}`;
+  }
+
+  return parts.slice(-2).join(" ");
 };
 
-const formatCurrency = (value?: number) => {
-  if (typeof value !== "number" || Number.isNaN(value)) {
-    return "$0";
-  }
-  return `$${value.toLocaleString("en-US")}`;
-};
+const formatMoney = (value?: number) =>
+  typeof value === "number" && Number.isFinite(value)
+    ? `$${value.toLocaleString("en-US")}`
+    : "";
 
-const buildBulletList = (
-  features?: Array<{ title?: string; details?: string; value?: string } | string>
-) => {
-  if (!Array.isArray(features) || features.length === 0) {
-    return [];
+const normalizeImage = (image?: string) => {
+  if (!image) return FALLBACK_IMAGE;
+  if (
+    image.startsWith("/") ||
+    image.startsWith("http://") ||
+    image.startsWith("https://")
+  ) {
+    return image;
   }
-  return features
-    .map((feature) => {
-      if (typeof feature === "string") return feature;
-      const title = feature?.title?.trim() ?? "";
-      const details = feature?.value?.trim() ?? feature?.details?.trim() ?? "";
-      if (title && details) return `${title}: ${details}`;
-      return title || details;
-    })
-    .filter(Boolean);
+  return FALLBACK_IMAGE;
 };
 
 function ProductCardSkeleton() {
   return (
-    <div className="h-[576px] rounded-[4px] border border-[#00A56F] bg-white p-4 lg:p-6">
-      <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="h-7 w-2/3 animate-pulse rounded-[6px] bg-[#E5E7EB]" />
-        <div className="flex flex-wrap gap-2">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div
-              key={index}
-              className="h-8 w-24 animate-pulse rounded-full bg-[#E5E7EB]"
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <div className="flex flex-col items-center xl:col-span-4">
-          <div className="flex h-[290px] w-full items-center justify-center rounded-[8px] bg-[#F4F7F9]">
-            <div className="h-[220px] w-[220px] animate-pulse rounded-[12px] bg-[#E5E7EB]" />
-          </div>
-          <div className="mt-5 flex items-center gap-3">
+    <div className="overflow-hidden rounded-[6px] border border-[#00A56F] bg-white">
+      <div className="p-3 sm:p-4 lg:p-5">
+        <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="h-7 w-2/3 animate-pulse rounded-[6px] bg-[#E5E7EB]" />
+          <div className="flex flex-wrap gap-2">
             {Array.from({ length: 3 }).map((_, index) => (
-              <div
-                key={index}
-                className="h-[10px] w-[10px] animate-pulse rounded-full bg-[#E5E7EB]"
-              />
+              <div key={index} className="h-[38px] w-24 animate-pulse rounded-full bg-[#E5E7EB]" />
             ))}
           </div>
         </div>
 
-        <div className="space-y-6 xl:col-span-4">
-          <div className="rounded-[8px] border border-[#94A3B8] p-5">
-            <div className="h-6 w-3/4 animate-pulse rounded-[6px] bg-[#E5E7EB]" />
-            <div className="mt-4 space-y-3">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[290px_34px_minmax(0,1fr)_340px]">
+          <div className="flex flex-col items-center">
+            <div className="flex h-[280px] w-full items-center justify-center rounded-[8px] bg-[#F4F7F9]">
+              <div className="h-[200px] w-[160px] animate-pulse rounded-[12px] bg-[#E5E7EB]" />
+            </div>
+            <div className="mt-4 flex items-center gap-3">
               {Array.from({ length: 3 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-4 w-full animate-pulse rounded-[6px] bg-[#F0F3F6]"
-                />
+                <div key={index} className="h-[10px] w-[10px] animate-pulse rounded-full bg-[#E5E7EB]" />
               ))}
             </div>
           </div>
 
-          <div className="rounded-[8px] border border-[#94A3B8] p-5">
-            <div className="space-y-4">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between gap-4"
-                >
-                  <div className="h-4 w-1/3 animate-pulse rounded-[6px] bg-[#F0F3F6]" />
-                  <div className="h-4 w-1/4 animate-pulse rounded-[6px] bg-[#E5E7EB]" />
+          <div className="hidden xl:block" />
+
+          <div className="space-y-4">
+            <div className="rounded-[8px] border-[2px] border-[#94A3B8] p-5">
+              <div className="h-6 w-3/4 animate-pulse rounded-[6px] bg-[#E5E7EB]" />
+              <div className="mt-3 space-y-2">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div key={index} className="h-4 w-full animate-pulse rounded-[6px] bg-[#F0F3F6]" />
+                ))}
+              </div>
+            </div>
+            <div className="rounded-[8px] border-[2px] border-[#94A3B8] p-5">
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="flex items-center justify-between gap-4">
+                    <div className="h-4 w-1/3 animate-pulse rounded-[6px] bg-[#F0F3F6]" />
+                    <div className="h-4 w-1/4 animate-pulse rounded-[6px] bg-[#E5E7EB]" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[4px] bg-[#F0F3F6] p-4 sm:p-5">
+            <div className="h-5 w-3/4 animate-pulse rounded-[6px] bg-[#E5E7EB]" />
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {Array.from({ length: 2 }).map((_, index) => (
+                <div key={index} className="rounded-[8px] bg-white p-4">
+                  <div className="h-4 w-1/2 animate-pulse rounded-[6px] bg-[#F0F3F6]" />
+                  <div className="mt-2 h-7 w-3/4 animate-pulse rounded-[6px] bg-[#E5E7EB]" />
                 </div>
               ))}
             </div>
+            <div className="mt-4 h-[48px] animate-pulse rounded-[8px] bg-white" />
+            <div className="mt-4 h-[46px] animate-pulse rounded-[6px] bg-[#E5E7EB]" />
+            <div className="mt-3 h-[46px] animate-pulse rounded-[6px] bg-[#E5E7EB]" />
           </div>
-        </div>
-
-        <div className="bg-[#F0F3F6] p-5 xl:col-span-4">
-          <div className="h-5 w-3/4 animate-pulse rounded-[6px] bg-[#E5E7EB]" />
-          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {Array.from({ length: 2 }).map((_, index) => (
-              <div key={index} className="rounded-[8px] bg-white p-4">
-                <div className="h-4 w-1/2 animate-pulse rounded-[6px] bg-[#F0F3F6]" />
-                <div className="mt-2 h-7 w-3/4 animate-pulse rounded-[6px] bg-[#E5E7EB]" />
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 h-[50px] animate-pulse rounded-[8px] bg-white" />
         </div>
       </div>
     </div>
@@ -216,135 +225,156 @@ function ProductCardSkeleton() {
 
 function ProductCard({ item }: { item: ProductItem }) {
   const [activeImage, setActiveImage] = useState(0);
-  const images = item.images.length > 0 ? item.images : ["/hitterpng.png"];
+  const images = item.images.length > 0 ? item.images : [FALLBACK_IMAGE];
+  const shortBoilerAbility = formatBoilerAbilityShort(item.boilerAbility);
 
   const nextImage = () => {
     setActiveImage((prev) => (prev + 1) % images.length);
   };
 
   return (
-    <div className="h-[576px] rounded-[4px] border border-[#00A56F] bg-white p-4 lg:p-6">
-      <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <h3 className="text-[24px] font-bold leading-tight text-[#2D3D4D]">
-          {item.title}
-        </h3>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {item.tags.map((tag, idx) => (
-            <TagBadge key={tag} label={tag} blue={idx === item.tags.length - 1} />
-          ))}
+    <div className="overflow-hidden rounded-[6px] border border-[#00A56F] bg-white shadow-sm">
+      {item.topBadge ? (
+        <div className="bg-[#00A56F] py-2 text-center text-[11px] sm:text-[12px] font-semibold tracking-wide text-white">
+          {item.topBadge}
         </div>
-      </div>
+      ) : null}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <div className="flex flex-col items-center xl:col-span-4">
-          <div className="relative flex h-[340px] w-full items-center justify-center overflow-hidden rounded-[14px] bg-transparent">
-            <Image
-              src={images[activeImage]}
-              alt={item.title}
-              width={1000}
-              height={1000}
-              className="relative z-10 h-[320px] w-full object-contain drop-shadow-[0_18px_35px_rgba(15,23,42,0.18)]"
-            />
+      <div className="p-3 sm:p-4 lg:p-5">
+        {/* Title + tags */}
+        <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <h3 className="text-[20px] sm:text-[22px] lg:text-[24px] font-bold leading-tight text-[#2D3D4D]">
+            {item.boilerAbility}
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {item.tags.map((tag) => (
+              <Tag key={tag} label={tag} />
+            ))}
+          </div>
+        </div>
+
+        {/* Main layout */}
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[290px_34px_minmax(0,1fr)_340px]">
+          {/* Image */}
+          <div className="flex flex-col items-center">
+            <div className="relative flex min-h-[280px] w-full items-center justify-center rounded-[8px] bg-white">
+              <div className="absolute left-1/2 top-1/2 h-[150px] w-[130px] -translate-x-1/2 -translate-y-1/2 rounded-[20px] bg-[#FFD9C7]" />
+
+              {item.badgeBubble ? (
+                <div className="absolute right-[18%] top-[24%] z-20 flex h-16 w-16 items-center justify-center rounded-full bg-[#FF6A6A] p-2 text-center text-[9px] font-bold leading-tight text-white shadow-md">
+                  {item.badgeBubble}
+                </div>
+              ) : null}
+
+              <Image
+                src={images[activeImage]}
+                alt={item.title}
+                width={1000}
+                height={1000}
+                className="relative z-10 h-[250px] w-auto object-contain sm:h-[320px]"
+              />
+            </div>
+
+            <div className="mt-4 flex items-center gap-3">
+              {images.map((_, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => setActiveImage(index)}
+                  className={cn(
+                    "h-[10px] w-[10px] rounded-full transition",
+                    index === activeImage ? "bg-[#00A56F]" : "bg-[#DDE3E8]"
+                  )}
+                />
+              ))}
+            </div>
           </div>
 
-          <div className="mt-5 flex items-center gap-3">
-            {images.map((_, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => setActiveImage(index)}
-                className={cn(
-                  "h-[10px] w-[10px] rounded-full transition",
-                  index === activeImage ? "bg-[#00A56F]" : "bg-[#D9DEE4]"
-                )}
-              />
-            ))}
+          {/* Arrow (desktop only) */}
+          <div className="hidden xl:flex items-center justify-center">
             <button
               type="button"
               onClick={nextImage}
-              className="hidden h-8 w-8 items-center justify-center rounded-full bg-[#F1F5F9] text-[#64748B] xl:inline-flex"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF2F5] text-[#64748B] transition hover:bg-[#E5EAF0]"
             >
-              <ChevronRightIcon className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4" />
             </button>
           </div>
-        </div>
 
-        <div className="space-y-6 xl:col-span-4">
-          <div className="rounded-[8px] border border-[#94A3B8] p-5">
-            <h4 className="text-[24px] font-semibold text-[#2D3D4D]">
-              {item.subtitle}
+          {/* Middle: summary + specs */}
+          <div className="space-y-4">
+            <div className="rounded-[8px] border-[2px] border-[#94A3B8] bg-white p-4 sm:p-5">
+              <h4 className="text-[18px] sm:text-[20px] font-bold leading-snug text-[#2D3D4D]">
+                {item.summaryTitle}
+              </h4>
+              <div className="mt-3 space-y-2">
+                {item.summaryPoints.map((point) => (
+                  <p key={point} className="text-[13px] sm:text-[16px] text-[#2D3D4D]">
+                    {point}
+                  </p>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[8px] border-[2px] border-[#94A3B8] bg-white p-4 sm:p-5">
+              <div className="space-y-3">
+                {item.specs.map((spec) => (
+                  <div
+                    key={spec.label}
+                    className="flex items-start justify-between gap-4 text-[13px] sm:text-[16px]"
+                  >
+                    <span className="text-[#2D3D4D]">{spec.label}</span>
+                    <div className="flex items-center gap-2 text-right">
+                      <span className="font-medium text-[#2D3D4D]">{spec.value}</span>
+                      <SpecIcon label={spec.label} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right: pricing */}
+          <div className="rounded-[4px] bg-[#F0F3F6] p-4 sm:p-5">
+            <h4 className="mb-4 text-center text-[16px] sm:text-[18px] font-medium text-[#2D3D4D]">
+              Your fixed price including installation:
             </h4>
 
-            <div className="mt-4 space-y-3">
-              {item.bullets.map((bullet) => (
-                <p key={bullet} className="text-[16px] text-[#2D3D4D]">
-                  {bullet}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-[8px] bg-white p-3 sm:p-4">
+                <p className="text-[12px] sm:text-[14px] text-[#2D3D4D]">Pay today</p>
+                <p className="mt-2 text-[20px] sm:text-[22px] font-bold leading-none text-[#2D3D4D]">
+                  {item.payToday}
                 </p>
-              ))}
-            </div>
-          </div>
+                {item.payTodayOld ? (
+                  <p className="mt-2 text-[11px] sm:text-[12px] font-medium text-[#00A56F] line-through">
+                    {item.payTodayOld}
+                  </p>
+                ) : null}
+              </div>
 
-          <div className="rounded-[8px] border border-[#94A3B8] p-5">
-            <div className="space-y-4">
-              {item.specs.map((spec) => (
-                <div
-                  key={spec.label}
-                  className="flex items-center justify-between gap-4"
-                >
-                  <span className="text-[16px] text-[#2D3D4D]">{spec.label}</span>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-[16px] font-medium text-[#2D3D4D]">
-                      {spec.value}
-                    </span>
-                    <SpecIcon type={spec.icon} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-[#F0F3F6] p-5 xl:col-span-4">
-          <h4 className="mb-5 text-center text-[20px] font-medium text-[#2D3D4D]">
-            Your fixed price including installation:
-          </h4>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-[8px] bg-white p-4">
-              <p className="text-[16px] text-[#2D3D4D]">Pay today</p>
-              <p className="mt-2 text-[24px] font-bold leading-none text-[#2D3D4D]">
-                {item.payToday}
-              </p>
-              {item.oldPayToday ? (
-                <p className="mt-2 text-[14px] font-medium text-[#00A56F] line-through">
-                  {item.oldPayToday}
+              <div className="rounded-[8px] bg-white p-3 sm:p-4">
+                <p className="text-[12px] sm:text-[14px] text-[#2D3D4D]">Monthly Cost</p>
+                <p className="mt-2 text-[20px] sm:text-[22px] font-bold leading-none text-[#2D3D4D]">
+                  {item.monthlyCost}
                 </p>
-              ) : null}
+                {item.monthlyCostOld ? (
+                  <p className="mt-2 text-[11px] sm:text-[12px] font-medium text-[#00A56F] line-through">
+                    {item.monthlyCostOld}
+                  </p>
+                ) : null}
+              </div>
             </div>
 
-            <div className="rounded-[8px] bg-white p-4">
-              <p className="text-[16px] text-[#2D3D4D]">Monthly Cost</p>
-              <p className="mt-2 text-[24px] font-bold leading-none text-[#2D3D4D]">
-                {item.monthlyCost}
-              </p>
-              {item.oldMonthlyCost ? (
-                <p className="mt-2 text-[14px] font-medium text-[#00A56F] line-through">
-                  {item.oldMonthlyCost}
-                </p>
-              ) : null}
+            <div className="mt-4 flex min-h-[48px] items-center justify-center rounded-[8px] bg-white px-3 text-center">
+              <BadgePercent className="mr-2 h-4 w-4 sm:h-5 sm:w-5 text-[#64748B]" />
+              <span className="text-[14px] sm:text-[15px] font-semibold text-[#2D3D4D]">
+                {shortBoilerAbility}
+              </span>
+              <span className="ml-2 text-[14px] sm:text-[15px] font-semibold text-[#00A56F]">
+                {item.discountValue}
+              </span>
             </div>
-          </div>
-
-          <div className="mt-4 flex h-[50px] items-center justify-center rounded-[8px] bg-white px-4">
-            <BadgePercent className="mr-2 h-5 w-5 text-[#64748B]" />
-            <span className="text-[20px] font-semibold text-[#2D3D4D]">
-              {item.discountLabel}
-            </span>
-            <span className="ml-3 text-[18px] font-semibold text-[#00A56F]">
-              {item.discountValue}
-            </span>
           </div>
         </div>
       </div>
@@ -390,73 +420,82 @@ export default function ServiceManagementPage() {
   const products = useMemo<ProductItem[]>(() => {
     const items = productsQuery.data?.data ?? [];
     return items.map((item, index) => {
-      const payTodayValue =
-        item.payablePrice ?? item.discountPrice ?? item.price ?? 0;
-      const basePrice = item.price ?? payTodayValue;
-      const monthlyPrice = item.monthlyPrice ?? 0;
-      const discountDelta =
-        typeof basePrice === "number" && typeof payTodayValue === "number"
-          ? Math.max(basePrice - payTodayValue, 0)
-          : 0;
+      const tags = (item.badges ?? []).map((tag) => tag.trim()).filter(Boolean);
+      const images = (item.images ?? []).map(normalizeImage);
+      const description = stripHtml(item.description);
+      const summaryTitle =
+        stripHtml(item.title) || item.title;
 
-      const rawBullets = buildBulletList(item.boilerFeatures);
-      const fallbackBullet = item.shortDescription ?? item.description ?? "";
-      const bullets =
-        rawBullets.length > 0
-          ? rawBullets
-          : fallbackBullet
-            ? [fallbackBullet]
-            : [];
+      const summaryPoints = [
+        description,
+        stripHtml(item.boilerAbility),
+        stripHtml(item.boilerIncludedData),
+      ].filter(
+        (point, pointIndex, allPoints) =>
+          point && point !== summaryTitle && allPoints.indexOf(point) === pointIndex
+      );
 
-      const specs: ProductItem["specs"] = [
-        {
-          label: "Boiler Ability",
-          value: item.boilerAbility ?? "N/A",
-          icon: "size",
-        },
-        {
-          label: "Payable Price",
-          value: formatCurrency(payTodayValue),
-          icon: "flow",
-        },
-        {
-          label: "Monthly Price",
-          value: formatCurrency(monthlyPrice),
-          icon: "heat",
-        },
-        {
-          label: "Discount Price",
-          value: formatCurrency(item.discountPrice ?? payTodayValue),
-          icon: "warranty",
-        },
-      ];
+      const specs = (item.boilerFeatures ?? [])
+        .map((feature) => {
+          if (typeof feature === "string") {
+            const value = stripHtml(feature);
+            return {
+              label: value ? "Feature" : "",
+              value,
+            };
+          }
+
+          return {
+            label: feature?.title?.trim() ?? "",
+            value: stripHtml(feature?.value ?? feature?.details ?? ""),
+          };
+        })
+        .filter((feature) => feature.label && feature.value);
+
+      const payToday = formatMoney(item.payablePrice) || formatMoney(item.price) || "$0";
+      const payTodayOld =
+        typeof item.price === "number" &&
+        typeof item.payablePrice === "number" &&
+        item.price > item.payablePrice
+          ? `was ${formatMoney(item.price)}`
+          : undefined;
+
+      const monthlyCostValue = formatMoney(item.monthlyPrice);
+      const monthlyCost = monthlyCostValue ? `${monthlyCostValue}+` : "$0";
+
+      const discountAmount =
+        typeof item.discountPrice === "number" && item.discountPrice > 0
+          ? item.discountPrice
+          : typeof item.price === "number" &&
+              typeof item.payablePrice === "number"
+            ? Math.max(item.price - item.payablePrice, 0)
+            : 0;
+
+      const topBadge = tags.some((tag) => /popular|best/i.test(tag))
+        ? "OUR BEST SELLER"
+        : undefined;
 
       return {
         id: item._id,
         systemName: "System - 01",
         productLabel: `Product ${String(index + 1).padStart(3, "0")}`,
         title: item.title,
-        tags: item.badges ?? [],
-        images:
-          item.images?.filter((src) => isValidImageSrc(src))?.length
-            ? item.images.filter((src) => isValidImageSrc(src))
-            : ["/hitterpng.png"],
-        subtitle: item.shortDescription ?? item.description ?? "",
-        bullets,
+        boilerAbility: stripHtml(item.boilerAbility) || stripHtml(item.title) || item.title,
+        topBadge,
+        badgeBubble: undefined,
+        tags,
+        images: images.length ? images : [FALLBACK_IMAGE],
+        summaryTitle,
+        summaryPoints,
         specs,
-        payToday: formatCurrency(payTodayValue),
-        oldPayToday:
-          basePrice && basePrice !== payTodayValue
-            ? `was ${formatCurrency(basePrice)}`
-            : undefined,
-        monthlyCost: formatCurrency(monthlyPrice),
-        oldMonthlyCost: undefined,
-        discountLabel: item.boilerAbility
-          ? `${item.boilerAbility} Discount`
-          : "Discount",
+        payToday,
+        payTodayOld,
+        monthlyCost,
+        monthlyCostOld: "",
+        discountTitle: `${item.title} Discount`,
         discountValue:
-          discountDelta > 0
-            ? `-$${discountDelta.toLocaleString("en-US")}`
+          discountAmount > 0
+            ? `-$${discountAmount.toLocaleString("en-US")}`
             : "$0",
         raw: item,
       };
