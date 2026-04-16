@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Eye, Trash2, X } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -21,127 +22,206 @@ import {
 } from "@/components/ui/dialog";
 import { CustomPagination } from "@/components/ui/common/CustomPagination";
 import { QuoteDetailsModal } from "./_components/QuoteDetailsModal";
+import { toast } from "sonner";
+
+type PersonalInfo = {
+  title?: string;
+  fastName?: string;
+  sureName?: string;
+  email?: string;
+  mobleNumber?: string;
+};
+
+type QuoteSelectableItem = {
+  _id: string;
+  title?: string;
+  price?: number;
+  discount?: number;
+};
+
+type PayMonthlyData = {
+  deposit?: number;
+  mounthNumber?: number;
+  amount?: number;
+  _id?: string;
+};
+
+type QuoteApiItem = {
+  _id: string;
+  productId?: QuoteSelectableItem | string | null;
+  quizAnswers?: Array<{
+    question: string;
+    answer: string;
+  }>;
+  personalInfo?: PersonalInfo;
+  controller?: QuoteSelectableItem | null;
+  extra?: QuoteSelectableItem | null;
+  surveyDate?: string;
+  installDate?: string;
+  installAddress?: string;
+  payByCard?: boolean;
+  payMounthly?: boolean;
+  payMounthlyData?: PayMonthlyData;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type QuotesApiData = {
+  data: QuoteApiItem[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+type QuotesApiResponse = {
+  statusCode: number;
+  success: boolean;
+  message: string;
+  data: QuotesApiData;
+};
+
+type DeleteQuoteApiResponse = {
+  success?: boolean;
+  status?: boolean;
+  message?: string;
+};
 
 type QuoteItem = {
-  id: number;
+  id: string;
   name: string;
   email: string;
   phone: string;
   date: string;
 };
 
-const dummyQuotes: QuoteItem[] = [
-  {
-    id: 1,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-  },
-  {
-    id: 2,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-  },
-  {
-    id: 3,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-  },
-  {
-    id: 4,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-  },
-  {
-    id: 5,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-  },
-  {
-    id: 6,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-  },
-  {
-    id: 7,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-  },
-  {
-    id: 8,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-  },
-  {
-    id: 9,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-  },
-  {
-    id: 10,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-  },
-  {
-    id: 11,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-  },
-  {
-    id: 12,
-    name: "Savannah Nguyen",
-    email: "debra.holt@example.com",
-    phone: "(907) 555-0101",
-    date: "November 28, 2015",
-  },
-];
-
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
+function QuoteSkeletonRow() {
+  return (
+    <TableRow className="border-b border-[#EDF1F4]">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <TableCell key={i} className="px-4 py-[14px]">
+          <div className="h-6 w-full animate-pulse rounded-md bg-gray-200" />
+        </TableCell>
+      ))}
+    </TableRow>
+  );
+}
+
+function getApiBaseUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_API_URL ||
+    ""
+  );
+}
+
+function getFullName(personalInfo?: PersonalInfo): string {
+  if (!personalInfo) return "N/A";
+
+  const firstName = personalInfo.fastName?.trim() || "";
+  const lastName = personalInfo.sureName?.trim() || "";
+  const fullName = `${firstName} ${lastName}`.trim();
+
+  return fullName || "N/A";
+}
+
+function formatDate(dateString?: string): string {
+  if (!dateString) return "N/A";
+
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "Invalid Date";
+
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
+async function fetchQuotes(
+  page: number,
+  pageSize: number
+): Promise<QuotesApiResponse> {
+  const baseUrl = getApiBaseUrl();
+
+  if (!baseUrl) {
+    throw new Error(
+      "Missing API base URL. Please set NEXT_PUBLIC_API_BASE_URL or NEXT_PUBLIC_BACKEND_API_URL."
+    );
+  }
+
+  const response = await fetch(`${baseUrl}/quote?page=${page}&limit=${pageSize}`, {
+    method: "GET",
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch quotes: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const json = (await response.json()) as QuotesApiResponse;
+
+  if (!json.success) {
+    throw new Error(json.message || "Failed to fetch quotes");
+  }
+
+  return json;
+}
+
 export default function QuoteGeneratedPage() {
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [openDetails, setOpenDetails] = useState(false);
-  const [selectedQuote, setSelectedQuote] = useState<QuoteItem | null>(null);
+  const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
   const [openDelete, setOpenDelete] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<QuoteItem | null>(null);
 
-  const totalItems = dummyQuotes.length;
-  const totalPages = Math.ceil(totalItems / pageSize);
+  const { data, isLoading, isError, error, isFetching } = useQuery<
+    QuotesApiResponse,
+    Error
+  >({
+    queryKey: ["quotes", page, pageSize],
+    queryFn: () => fetchQuotes(page, pageSize),
+    staleTime: 1000 * 60 * 2,
+    placeholderData: (previousData) => previousData,
+  });
 
-  const paginatedData = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    return dummyQuotes.slice(start, end);
-  }, [page, pageSize]);
+  const quotes = useMemo<QuoteItem[]>(() => {
+    const rawItems = Array.isArray(data?.data?.data) ? data.data.data : [];
+
+    return rawItems.map((item) => {
+      const displayDate = item.createdAt || item.surveyDate || item.installDate;
+
+      return {
+        id: item._id,
+        name: getFullName(item.personalInfo),
+        email: item.personalInfo?.email?.trim() || "N/A",
+        phone: item.personalInfo?.mobleNumber?.trim() || "N/A",
+        date: formatDate(displayDate),
+      };
+    });
+  }, [data]);
+
+  const totalItems = data?.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   const startItem = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
   const endItem = Math.min(page * pageSize, totalItems);
 
   const handleOpenDetails = (item: QuoteItem) => {
-    setSelectedQuote(item);
+    setSelectedQuoteId(item.id);
     setOpenDetails(true);
+  };
+
+  const handleDetailsOpenChange = (nextOpen: boolean) => {
+    setOpenDetails(nextOpen);
+    if (!nextOpen) {
+      setSelectedQuoteId(null);
+    }
   };
 
   const handleOpenDelete = (item: QuoteItem) => {
@@ -156,12 +236,54 @@ export default function QuoteGeneratedPage() {
     }
   };
 
+  const deleteQuoteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const baseUrl = getApiBaseUrl();
+
+      if (!baseUrl) {
+        throw new Error(
+          "Missing API base URL. Please set NEXT_PUBLIC_API_BASE_URL or NEXT_PUBLIC_BACKEND_API_URL."
+        );
+      }
+
+      const response = await fetch(`${baseUrl}/quote/${id}`, {
+        method: "DELETE",
+      });
+
+      const json = (await response.json().catch(() => null)) as
+        | DeleteQuoteApiResponse
+        | null;
+      const hasExplicitFailure =
+        json?.success === false || json?.status === false;
+
+      if (!response.ok || hasExplicitFailure) {
+        throw new Error(json?.message || "Failed to delete quote.");
+      }
+
+      return json;
+    },
+    onSuccess: () => {
+      toast.success("Quote deleted successfully.");
+      queryClient.invalidateQueries({ queryKey: ["quotes"] });
+      setOpenDelete(false);
+      setDeleteTarget(null);
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete quote."
+      );
+    },
+  });
+
   const handleConfirmDelete = () => {
-    setOpenDelete(false);
-    setDeleteTarget(null);
+    if (!deleteTarget) return;
+    deleteQuoteMutation.mutate(deleteTarget.id);
   };
 
-  const deleteLabel = deleteTarget?.name ?? "this quote";
+  const deleteLabel =
+    deleteTarget?.name && deleteTarget.name !== "N/A"
+      ? deleteTarget.name
+      : "this quote";
 
   return (
     <>
@@ -183,7 +305,7 @@ export default function QuoteGeneratedPage() {
 
           <div className="rounded-[12px] border border-[#E5E7EB] bg-white p-3 shadow-[0_2px_10px_rgba(15,23,42,0.04)] sm:p-4">
             <div className="overflow-x-auto">
-              <Table className="w-full">
+              <Table className="min-w-[980px]">
                 <TableHeader>
                   <TableRow className="border-none bg-[#F4F7F9] hover:bg-[#F4F7F9]">
                     <TableHead className="h-[42px] rounded-l-[8px] px-4 text-[16px] font-medium text-[#00A56F]">
@@ -198,56 +320,80 @@ export default function QuoteGeneratedPage() {
                     <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">
                       Date
                     </TableHead>
-                    <TableHead className="h-[42px] rounded-r-[8px] px-4 text-[16px] font-medium text-[#00A56F]">
+                    <TableHead className="h-[42px] rounded-r-[8px] px-4 text-right text-[16px] font-medium text-[#00A56F]">
                       Action
                     </TableHead>
                   </TableRow>
                 </TableHeader>
 
                 <TableBody>
-                  {paginatedData.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      className="border-b border-[#EDF1F4] hover:bg-transparent"
-                    >
-                      <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
-                        {item.name}
-                      </TableCell>
-
-                      <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
-                        {item.email}
-                      </TableCell>
-
-                      <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
-                        {item.phone}
-                      </TableCell>
-
-                      <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
-                        {item.date}
-                      </TableCell>
-
-                      <TableCell className="px-4 py-[14px]">
-                        <div className="flex items-center gap-3">
-                          <Button
-                            type="button"
-                            onClick={() => handleOpenDetails(item)}
-                            className="h-[40px] rounded-full bg-[#00A56F1A] px-3 text-[16px] font-semibold text-[#12A150] hover:bg-[#dcf4e7]"
-                          >
-                            <Eye className="mr-1.5 h-3.5 w-3.5" />
-                            View Details
-                          </Button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleOpenDelete(item)}
-                            className="flex h-8 w-8 items-center justify-center rounded-full text-[#F5D64E] transition hover:bg-[#FFF8DB]"
-                          >
-                            <Trash2 className="!h-5 !w-5 text-[#FFDE59]" />
-                          </button>
-                        </div>
+                  {isLoading ? (
+                    Array.from({ length: pageSize }).map((_, i) => (
+                      <QuoteSkeletonRow key={i} />
+                    ))
+                  ) : isError ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="h-32 text-center text-red-600"
+                      >
+                        Failed to load quotes: {error.message}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : quotes.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="h-32 text-center text-[#64748B]"
+                      >
+                        No quotes found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    quotes.map((item) => (
+                      <TableRow
+                        key={item.id}
+                        className="border-b border-[#EDF1F4] hover:bg-transparent"
+                      >
+                        <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
+                          {item.name}
+                        </TableCell>
+
+                        <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
+                          {item.email}
+                        </TableCell>
+
+                        <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
+                          {item.phone}
+                        </TableCell>
+
+                        <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
+                          {item.date}
+                        </TableCell>
+
+                        <TableCell className="px-4 py-[14px]">
+                          <div className="flex items-center justify-end gap-3">
+                            <Button
+                              type="button"
+                              onClick={() => handleOpenDetails(item)}
+                              className="h-[40px] rounded-full bg-[#00A56F1A] px-3 text-[16px] font-semibold text-[#12A150] hover:bg-[#dcf4e7]"
+                            >
+                              <Eye className="mr-1.5 h-3.5 w-3.5" />
+                              View Details
+                            </Button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDelete(item)}
+                              className="flex h-8 w-8 items-center justify-center rounded-full text-[#F5D64E] transition hover:bg-[#FFF8DB]"
+                            >
+                              <Trash2 className="!h-5 !w-5 text-[#FFDE59]" />
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -255,6 +401,7 @@ export default function QuoteGeneratedPage() {
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-[13px] font-medium text-[#64748B]">
                 Showing {startItem} to {endItem} of {totalItems} results
+                {isFetching && !isLoading ? " • updating..." : ""}
               </p>
 
               <CustomPagination
@@ -275,8 +422,8 @@ export default function QuoteGeneratedPage() {
 
       <QuoteDetailsModal
         open={openDetails}
-        onOpenChange={setOpenDetails}
-        quote={selectedQuote}
+        onOpenChange={handleDetailsOpenChange}
+        quoteId={selectedQuoteId}
       />
 
       <Dialog open={openDelete} onOpenChange={handleDeleteOpenChange}>
@@ -300,6 +447,7 @@ export default function QuoteGeneratedPage() {
                 type="button"
                 variant="outline"
                 onClick={() => handleDeleteOpenChange(false)}
+                disabled={deleteQuoteMutation.isPending}
                 className="h-[40px] rounded-[10px] border border-[#F5D64E] bg-transparent px-6 text-[14px] font-semibold text-[#F5D64E] hover:bg-transparent"
               >
                 <X className="mr-2 h-4 w-4" />
@@ -309,9 +457,10 @@ export default function QuoteGeneratedPage() {
               <Button
                 type="button"
                 onClick={handleConfirmDelete}
+                disabled={deleteQuoteMutation.isPending}
                 className="h-[40px] rounded-[10px] bg-[#F5D64E] px-6 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#edcf47]"
               >
-                Delete
+                {deleteQuoteMutation.isPending ? "Deleting..." : "Delete"}
               </Button>
             </div>
           </DialogContent>

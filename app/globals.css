@@ -25,3 +25,11 @@
   color: #2d3d4d;
   padding: 12px;
 }
+
+.boiler-quill-editor .ql-container {
+  min-height: 180px;
+}
+
+.boiler-quill-editor .ql-editor {
+  min-height: 180px;
+}

@@ -22,7 +22,7 @@ const navigation = [
   { name: "Dashboard Overview", href: "/", icon: LayoutDashboard },
   { name: "Quote Generated", href: "/quotes", icon: FileText },
   { name: "Booking Management", href: "/bookings", icon: CalendarCheck },
-  { name: "Service Management", href: "/benefit-details", icon: Wrench },
+  { name: "Products Management", href: "/products", icon: Wrench },
   // { name: "Quiz Management", href: "/all-users", icon: ListChecks },
   { name: "Controls & Extras Management", href: "/controls-extras", icon: Package },
   { name: "FAQ Management", href: "/faq", icon: HelpCircle },
