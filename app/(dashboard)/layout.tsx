@@ -1,8 +1,16 @@
 import Header from "@/components/ui/common/Header";
 import { Sidebar } from "@/components/ui/common/Sidebar";
+import { authOptions } from "@/lib/authOptions";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 
+async function layout({ children }: { children: React.ReactNode }) {
+  const session = await getServerSession(authOptions);
 
-function layout({ children }: { children: React.ReactNode }) {
+  if (!session?.accessToken) {
+    redirect("/login");
+  }
+
   return (
     <div className="h-screen flex flex-col">
       <Header />
