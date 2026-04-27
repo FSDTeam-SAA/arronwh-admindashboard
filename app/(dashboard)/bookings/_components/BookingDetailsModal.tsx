@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -153,6 +153,33 @@ function parseDate(value?: string): Date | null {
   return date;
 }
 
+function getDateKeyFromIso(value?: string): string | null {
+  if (!value) return null;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const datePart = trimmed.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+    return datePart;
+  }
+
+  const date = parseDate(trimmed);
+  if (!date) return null;
+
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function buildDateKey(year: number, monthIndex: number, day: number): string {
+  return `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(
+    2,
+    "0"
+  )}`;
+}
+
 function getFullName(personalInfo?: PersonalInfo): string {
   if (!personalInfo) return "N/A";
 
@@ -165,12 +192,17 @@ function getFullName(personalInfo?: PersonalInfo): string {
 }
 
 function formatDate(value?: string): string {
-  const date = parseDate(value);
-  if (!date) return "N/A";
+  const dateKey = getDateKeyFromIso(value);
+  if (!dateKey) return "N/A";
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
   return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "long",
     year: "numeric",
+    weekday: "short",
+    timeZone: "UTC",
   }).format(date);
 }
 
@@ -308,8 +340,33 @@ export function BookingDetailsModal({
   }, [selectedYear]);
 
   const quote = booking?.quote;
-  const surveyDateValue = parseDate(quote?.surveyDate);
-  const installDateValue = parseDate(quote?.installDate);
+  const surveyDateKey = useMemo(
+    () => getDateKeyFromIso(quote?.surveyDate),
+    [quote?.surveyDate]
+  );
+  const installDateKey = useMemo(
+    () => getDateKeyFromIso(quote?.installDate),
+    [quote?.installDate]
+  );
+
+  useEffect(() => {
+    if (!open) return;
+
+    const initialDateKey = installDateKey ?? surveyDateKey;
+    if (!initialDateKey) {
+      const currentDate = new Date();
+      setSelectedMonth(currentDate.getMonth());
+      setSelectedYear(currentDate.getFullYear());
+      return;
+    }
+
+    const [year, month] = initialDateKey.split("-").map(Number);
+    if (!year || !month) return;
+
+    setSelectedYear(year);
+    setSelectedMonth(month - 1);
+  }, [open, bookingId, installDateKey, surveyDateKey]);
+
   const paymentMethod = quote
     ? quote.payByCard
       ? "Pay by card"
@@ -414,6 +471,26 @@ export function BookingDetailsModal({
                   </div>
                 </div>
 
+                <div className="mb-4 flex flex-wrap items-center gap-3 text-[12px] text-[#4E5D6C]">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-sm bg-[#F5D64E]" />
+                    Survey date
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-sm bg-[#00A56F]" />
+                    Install date
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-sm border-2 border-[#2D3D4D] bg-white" />
+                    Selected booking date
+                  </span>
+                </div>
+
+                <p className="mb-4 text-[13px] text-[#2D3D4D]">
+                  Survey: <span className="font-semibold">{formatDate(quote?.surveyDate)}</span>{" "}
+                  | Install: <span className="font-semibold">{formatDate(quote?.installDate)}</span>
+                </p>
+
                 <div className="grid grid-cols-7 gap-x-6 gap-y-4">
                   {dayNames.map((day) => (
                     <div
@@ -427,39 +504,59 @@ export function BookingDetailsModal({
                   {calendarWeeks.flatMap((week, rowIndex) =>
                     week.map((value, colIndex) => {
                       const key = `${rowIndex}-${colIndex}`;
-                      const isSurvey =
-                        value !== null &&
-                        !!surveyDateValue &&
-                        selectedYear === surveyDateValue.getFullYear() &&
-                        selectedMonth === surveyDateValue.getMonth() &&
-                        value === surveyDateValue.getDate();
-                      const isInstall =
-                        value !== null &&
-                        !!installDateValue &&
-                        selectedYear === installDateValue.getFullYear() &&
-                        selectedMonth === installDateValue.getMonth() &&
-                        value === installDateValue.getDate();
+                      const dateKey =
+                        value !== null
+                          ? buildDateKey(selectedYear, selectedMonth, value)
+                          : null;
+                      const hasSurveyBookings =
+                        dateKey !== null && surveyDateKey === dateKey;
+                      const hasInstallBookings =
+                        dateKey !== null && installDateKey === dateKey;
+                      const isSelectedSurveyDate =
+                        dateKey !== null && surveyDateKey === dateKey;
+                      const isSelectedInstallDate =
+                        dateKey !== null && installDateKey === dateKey;
 
                       let dayClass = "bg-white text-[#2D3D4D]";
-                      if (isSurvey) dayClass = "bg-[#F5D64E] text-[#2D3D4D]";
-                      if (isInstall) dayClass = "bg-[#00A56F] text-white";
+                      if (hasInstallBookings) {
+                        dayClass = "bg-[#00A56F] text-white";
+                      } else if (hasSurveyBookings) {
+                        dayClass = "bg-[#F5D64E] text-[#2D3D4D]";
+                      }
+
+                      const selectedDateClass =
+                        isSelectedInstallDate || isSelectedSurveyDate
+                          ? "ring-2 ring-[#2D3D4D] ring-offset-1"
+                          : "";
 
                       return (
                         <div key={key} className="flex justify-center">
                           <div
-                            className={`flex h-[40px] w-[70px] flex-col items-center justify-center rounded-[8px] text-[14px] font-medium ${dayClass}`}
+                            className={`flex h-[48px] w-[74px] flex-col items-center justify-center rounded-[8px] text-[14px] font-medium ${dayClass} ${selectedDateClass}`}
                           >
                             {value ?? ""}
-                            {isSurvey && (
-                              <span className="mt-0.5 text-[10px] font-medium">
-                                Survey
-                              </span>
-                            )}
-                            {isInstall && (
-                              <span className="mt-0.5 text-[10px] font-medium">
-                                Installation
-                              </span>
-                            )}
+                            {value !== null && (hasSurveyBookings || hasInstallBookings) ? (
+                              <div className="mt-0.5 flex items-center gap-1">
+                                {hasSurveyBookings ? (
+                                  <span
+                                    className="rounded-[3px] bg-[#fff8dc] px-1 text-[8px] font-semibold text-[#7A6100]"
+                                  >
+                                    S
+                                  </span>
+                                ) : null}
+                                {hasInstallBookings ? (
+                                  <span
+                                    className={`rounded-[3px] px-1 text-[8px] font-semibold ${
+                                      hasSurveyBookings
+                                        ? "bg-[#D6F3E5] text-[#007D53]"
+                                        : "bg-white/20 text-white"
+                                    }`}
+                                  >
+                                    I
+                                  </span>
+                                ) : null}
+                              </div>
+                            ) : null}
                           </div>
                         </div>
                       );

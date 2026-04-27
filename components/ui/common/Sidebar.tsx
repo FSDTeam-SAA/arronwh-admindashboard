@@ -88,9 +88,9 @@ export function Sidebar() {
       >
         {/* Header with Logo */}
         <div className="flex flex-col items-center justify-center relative px-6 pt-6 pb-10">
-          <div className="flex h-[80px] w-[120px] items-center justify-center">
+          <div className="flex h-[100px] w-[220px] items-center justify-center">
             <Image
-              src="/logo.png"
+              src="/logo1.png"
               alt="Logo"
               width={1000}
               height={1000}

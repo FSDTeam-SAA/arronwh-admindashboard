@@ -1,102 +1,291 @@
-'use client'
+'use client';
 
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '@/components/ui/chart';
 
-const data = [
-  { month: 'Feb', value: 40, date: 'February 2025' },
-  { month: 'Mar', value: 45, date: 'March 2025' },
-  { month: 'Apr', value: 50, date: 'April 2025' },
-  { month: 'May', value: 48, date: 'May 2025' },
-  { month: 'Jun', value: 52, date: 'June 2025' },
-  { month: 'Jul', value: 55, date: 'July 2025' },
-  { month: 'Aug', value: 58, date: 'August 2025' },
-  { month: 'Sep', value: 62, date: 'September 2025' },
-  { month: 'Oct', value: 68, date: 'October 2025' },
-  { month: 'Nov', value: 75, date: 'November 2025' },
-  { month: 'Dec', value: 72, date: 'December 2025' },
-  { month: 'Jan', value: 80, date: 'January 2026' },
-]
+type EarningType = 'revenue' | 'booking';
 
-//eslint-disable-next-line 
-const CustomTooltip = (props: any) => {
-  const { active, payload } = props
-  if (active && payload && payload.length) {
-    return (
-      <div className="flex flex-col items-center gap-1">
-        <span className="text-xs text-gray-600">{payload[0].payload.date}</span>
-        <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-      </div>
-    )
+type EarningOverviewApiItem = {
+  month: string;
+  revenue?: number;
+  booking?: number;
+  bookings?: number;
+  totalBookings?: number;
+  count?: number;
+  value?: number;
+};
+
+type EarningOverviewApiResponse = {
+  statusCode: number;
+  success: boolean;
+  message: string;
+  data: EarningOverviewApiItem[];
+};
+
+type ChartPoint = {
+  month: string;
+  value: number;
+};
+
+const MONTH_ORDER = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+];
+
+const MONTH_LABEL: Record<string, string> = {
+  Jan: 'January', Feb: 'February', Mar: 'March', Apr: 'April', May: 'May',
+  Jun: 'June', Jul: 'July', Aug: 'August', Sep: 'September', Oct: 'October',
+  Nov: 'November', Dec: 'December'
+};
+
+const chartConfig = {
+  value: {
+    label: 'Overview',
+    color: '#F4BF24',
+  },
+} satisfies ChartConfig;
+
+const toSafeNumber = (value: unknown): number => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
   }
-  return null
+  return 0;
+};
+
+const normalizeMonthKey = (month: string): string => {
+  const normalized = month.trim().slice(0, 3);
+  if (!normalized) return '';
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
+};
+
+const resolveMetricValue = (item: EarningOverviewApiItem, type: EarningType): number => {
+  if (type === 'revenue') {
+    return toSafeNumber(item.revenue ?? item.value);
+  }
+  return toSafeNumber(
+    item.booking ?? item.bookings ?? item.totalBookings ?? item.count ?? item.value ?? item.revenue
+  );
+};
+
+const formatMetricValue = (value: number, type: EarningType): string => {
+  if (type === 'revenue') {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  }
+
+  return new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 0,
+  }).format(value);
+};
+
+function ChartSkeleton() {
+  return (
+    <div className="h-[300px] rounded-[12px] border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+      <div className="mb-4 h-4 w-full animate-pulse rounded bg-[#E2E8F0]" />
+      <div className="mb-4 h-4 w-4/5 animate-pulse rounded bg-[#E2E8F0]" />
+      <div className="mb-4 h-4 w-3/5 animate-pulse rounded bg-[#E2E8F0]" />
+      <div className="h-32 w-full animate-pulse rounded bg-[#EEF2F6]" />
+      <div className="mt-6 grid grid-cols-12 gap-2">
+        {Array.from({ length: 12 }).map((_, index) => (
+          <div
+            key={`earning-skeleton-tick-${index}`}
+            className="h-3 animate-pulse rounded bg-[#E2E8F0]"
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function EarningChart() {
-  const [activeTab, setActiveTab] = useState<'revenue' | 'bookings'>('revenue')
+  const { data: session, status: sessionStatus } = useSession();
+  const token = session?.accessToken;
+  const currentYear = new Date().getFullYear();
+
+  const [activeTab, setActiveTab] = useState<EarningType>('revenue');
+  const [selectedFrequency, setSelectedFrequency] = useState('monthly');
+  const [selectedYear, setSelectedYear] = useState(String(currentYear));
+
+  const yearOptions = useMemo(
+    () => Array.from({ length: 6 }, (_, index) => String(currentYear + index)),
+    [currentYear]
+  );
+
+  const earningOverviewQuery = useQuery<EarningOverviewApiResponse>({
+    queryKey: ['dashboard-earning-overview', token, selectedYear, activeTab, selectedFrequency],
+    enabled: Boolean(token),
+    queryFn: async () => {
+      if (!token) {
+        throw new Error('Missing access token.');
+      }
+
+      const params = new URLSearchParams({
+        year: selectedYear,
+        type: activeTab,
+      });
+
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+      const response = await fetch(`${apiBase}/dashboard/earning-overview?${params.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json().catch(() => null);
+      const hasExplicitFailure = data?.success === false || data?.status === false;
+
+      if (!response.ok || hasExplicitFailure) {
+        throw new Error(data?.message ?? 'Failed to load earning overview.');
+      }
+
+      return data as EarningOverviewApiResponse;
+    },
+  });
+
+  const chartData = useMemo<ChartPoint[]>(() => {
+    const rawItems = earningOverviewQuery.data?.data ?? [];
+    const monthWiseData = new Map(
+      rawItems.map((item) => [normalizeMonthKey(item.month), resolveMetricValue(item, activeTab)])
+    );
+
+    return MONTH_ORDER.map((month) => ({
+      month,
+      value: monthWiseData.get(month) ?? 0,
+    }));
+  }, [earningOverviewQuery.data, activeTab]);
+
+  const maxValue = useMemo(() => {
+    const candidate = Math.max(...chartData.map((point) => point.value), 0);
+    if (candidate <= 0) return 10;
+    return Math.ceil(candidate * 1.2);
+  }, [chartData]);
+
+  const showSkeleton =
+    sessionStatus === 'loading' ||
+    (Boolean(token) && earningOverviewQuery.isLoading && !earningOverviewQuery.data);
+
+  const hasError = earningOverviewQuery.isError;
+  const errorMessage =
+    earningOverviewQuery.error instanceof Error
+      ? earningOverviewQuery.error.message
+      : 'Failed to load earning overview.';
 
   return (
-    <div className="border border-gray-200 rounded-lg p-6 bg-white">
-      <div className="flex justify-between items-center mb-8">
-        <h2 className="text-lg font-semibold text-gray-900">Earning Overview</h2>
-        <div className="flex items-center gap-8">
-          <div className="flex gap-6">
+    <div className="rounded-[14px] border border-[#E2E8F0] bg-white p-5 shadow-sm">
+      <div className="mb-4 flex flex-col gap-3 border-b border-[#EAEFF4] pb-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h2 className="text-[28px] font-bold leading-tight text-[#2D3D4D]">Earning Overview</h2>
+          <div className="mt-3 flex items-center gap-2">
             <button
+              type="button"
               onClick={() => setActiveTab('revenue')}
-              className={`text-sm font-medium pb-2 border-b-2 transition-colors ${
+              className={`rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors ${
                 activeTab === 'revenue'
-                  ? 'text-gray-900 border-gray-900'
-                  : 'text-gray-500 border-transparent hover:text-gray-700'
+                  ? 'bg-[#EEF2F6] text-[#2D3D4D]'
+                  : 'bg-white text-[#64748B] hover:bg-[#F8FAFC]'
               }`}
             >
               Revenue
             </button>
             <button
-              onClick={() => setActiveTab('bookings')}
-              className={`text-sm font-medium pb-2 border-b-2 transition-colors ${
-                activeTab === 'bookings'
-                  ? 'text-gray-900 border-gray-900'
-                  : 'text-gray-500 border-transparent hover:text-gray-700'
+              type="button"
+              onClick={() => setActiveTab('booking')}
+              className={`rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors ${
+                activeTab === 'booking'
+                  ? 'bg-[#EEF2F6] text-[#2D3D4D]'
+                  : 'bg-white text-[#64748B] hover:bg-[#F8FAFC]'
               }`}
             >
               Bookings
             </button>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900">
-            <span>Monthly</span>
-            <ChevronDown size={16} />
-          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label htmlFor="earning-frequency" className="sr-only">
+            Frequency
+          </label>
+      
+
+          <label htmlFor="earning-year" className="sr-only">
+            Year
+          </label>
+          <select
+            id="earning-year"
+            value={selectedYear}
+            onChange={(event) => setSelectedYear(event.target.value)}
+            className="h-[34px] rounded-[7px] border border-[#D7DEE8] bg-white px-2 text-xs font-medium text-[#2D3D4D] outline-none"
+          >
+            {yearOptions.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={500}>
-        <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#fbbf24" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="0" stroke="#f0f0f0" vertical={false} />
-          <XAxis 
-            dataKey="month" 
-            stroke="#d1d5db"
-            style={{ fontSize: '12px', color: '#6b7280' }}
-          />
-          <YAxis hide />
-          <Tooltip content={<CustomTooltip />} cursor={false} />
-          <Area
-            type="monotone"
-            dataKey="value"
-            stroke="#fbbf24"
-            strokeWidth={2.5}
-            fill="url(#colorValue)"
-            dot={false}
-            activeDot={{ r: 5, fill: '#fbbf24' }}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+      {showSkeleton ? (
+        <ChartSkeleton />
+      ) : hasError ? (
+        <div className="rounded-[10px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {errorMessage}
+        </div>
+      ) : (
+        <div className="h-[300px]">
+          <ChartContainer config={chartConfig} className="h-full">
+            <AreaChart data={chartData} margin={{ top: 12, right: 6, left: 6, bottom: 0 }}>
+              <defs>
+                <linearGradient id="earning-overview-gradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--color-value)" stopOpacity={0.45} />
+                  <stop offset="95%" stopColor="var(--color-value)" stopOpacity={0.06} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="#E8EDF3" vertical={false} />
+              <XAxis
+                dataKey="month"
+                axisLine={false}
+                tickLine={false}
+                interval={0}
+                minTickGap={0}
+                tick={{ fill: '#64748B', fontSize: 12 }}
+              />
+              <YAxis hide domain={[0, maxValue]} />
+              <ChartTooltip
+                cursor={{ stroke: '#D5DEE8' }}
+                content={
+                  <ChartTooltipContent
+                    indicator="line"
+                    labelFormatter={(label) => `${MONTH_LABEL[String(label)] ?? String(label)} ${selectedYear}`}
+                    formatter={(value) => formatMetricValue(toSafeNumber(value), activeTab)} label={undefined} payload={undefined}                  />
+                }
+              />
+              <Area
+                type="monotone"
+                dataKey="value"
+                fill="url(#earning-overview-gradient)"
+                fillOpacity={1}
+                stroke="var(--color-value)"
+                strokeWidth={3}
+                activeDot={{ r: 4, fill: 'var(--color-value)', stroke: '#FFFFFF', strokeWidth: 2 }}
+              />
+            </AreaChart>
+          </ChartContainer>
+        </div>
+      )}
     </div>
-  )
+  );
 }
