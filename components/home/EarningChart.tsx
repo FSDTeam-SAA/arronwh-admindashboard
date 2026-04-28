@@ -116,7 +116,6 @@ export function EarningChart() {
   const currentYear = new Date().getFullYear();
 
   const [activeTab, setActiveTab] = useState<EarningType>('revenue');
-  const [selectedFrequency, setSelectedFrequency] = useState('monthly');
   const [selectedYear, setSelectedYear] = useState(String(currentYear));
 
   const yearOptions = useMemo(
@@ -125,7 +124,7 @@ export function EarningChart() {
   );
 
   const earningOverviewQuery = useQuery<EarningOverviewApiResponse>({
-    queryKey: ['dashboard-earning-overview', token, selectedYear, activeTab, selectedFrequency],
+    queryKey: ['dashboard-earning-overview', token, selectedYear, activeTab],
     enabled: Boolean(token),
     queryFn: async () => {
       if (!token) {
@@ -270,7 +269,8 @@ export function EarningChart() {
                   <ChartTooltipContent
                     indicator="line"
                     labelFormatter={(label) => `${MONTH_LABEL[String(label)] ?? String(label)} ${selectedYear}`}
-                    formatter={(value) => formatMetricValue(toSafeNumber(value), activeTab)} label={undefined} payload={undefined}                  />
+                    formatter={(value) => formatMetricValue(toSafeNumber(value), activeTab)}
+                  />
                 }
               />
               <Area

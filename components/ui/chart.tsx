@@ -1,7 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { ResponsiveContainer, Tooltip, type TooltipProps } from 'recharts';
+import {
+  ResponsiveContainer,
+  Tooltip,
+  type TooltipContentProps as RechartsTooltipContentProps,
+} from 'recharts';
 import { cn } from '@/lib/utils';
 
 export type ChartConfig = Record<
@@ -61,7 +65,7 @@ function ChartContainer({
 const ChartTooltip = Tooltip;
 
 type ChartTooltipContentProps = React.ComponentProps<'div'> &
-  Pick<TooltipProps<number, string>, 'active' | 'payload' | 'label'> & {
+  Partial<Pick<RechartsTooltipContentProps<number, string>, 'active' | 'payload' | 'label'>> & {
     hideLabel?: boolean;
     indicator?: 'dot' | 'line';
     formatter?: (value: number | string, name: string) => React.ReactNode;
@@ -80,7 +84,7 @@ function ChartTooltipContent({
 }: ChartTooltipContentProps) {
   const { config } = useChart();
 
-  if (!active || !payload?.length) return null;
+  if (!active || !Array.isArray(payload) || payload.length === 0) return null;
 
   const title = hideLabel ? null : labelFormatter ? labelFormatter(label) : label;
 
