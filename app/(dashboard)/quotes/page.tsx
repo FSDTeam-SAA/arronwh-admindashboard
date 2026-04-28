@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Eye, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, Trash2, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Table,
@@ -23,6 +23,7 @@ import {
 import { CustomPagination } from "@/components/ui/common/CustomPagination";
 import { QuoteDetailsModal } from "./_components/QuoteDetailsModal";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 type PersonalInfo = {
   title?: string;
@@ -48,6 +49,7 @@ type PayMonthlyData = {
 
 type QuoteApiItem = {
   _id: string;
+  status?: string;
   productId?: QuoteSelectableItem | string | null;
   quizAnswers?: Array<{
     question: string;
@@ -86,12 +88,21 @@ type DeleteQuoteApiResponse = {
   message?: string;
 };
 
+type UpdateQuoteStatusApiResponse = {
+  success?: boolean;
+  status?: boolean;
+  message?: string;
+};
+
+type QuoteStatus = "pending" | "rejected" | "accepted";
+
 type QuoteItem = {
   id: string;
   name: string;
   email: string;
   phone: string;
   date: string;
+  status: QuoteStatus;
 };
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
@@ -99,12 +110,55 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50];
 function QuoteSkeletonRow() {
   return (
     <TableRow className="border-b border-[#EDF1F4]">
-      {Array.from({ length: 5 }).map((_, i) => (
+      {Array.from({ length: 6 }).map((_, i) => (
         <TableCell key={i} className="px-4 py-[14px]">
           <div className="h-6 w-full animate-pulse rounded-md bg-gray-200" />
         </TableCell>
       ))}
     </TableRow>
+  );
+}
+
+function getQuoteStatus(value?: string): QuoteStatus {
+  if (value === "accepted") return "accepted";
+  if (value === "rejected") return "rejected";
+  return "pending";
+}
+
+function QuoteStatusBadge({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: QuoteStatus;
+  onChange: (value: QuoteStatus) => void;
+  disabled?: boolean;
+}) {
+  const styles =
+    value === "accepted"
+      ? "bg-[#E4F7EF] text-[#00A56F]"
+      : value === "rejected"
+      ? "bg-[#FDE8E8] text-[#FF0000]"
+      : "bg-[#FFF5D6] text-[#000000]";
+
+  return (
+    <div className="relative w-[165px]">
+      <select
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value as QuoteStatus)}
+        className={cn(
+          "h-[35px] w-full appearance-none rounded-full px-4 pr-10 text-[15px] font-medium capitalize outline-none transition",
+          styles,
+          disabled ? "cursor-not-allowed opacity-70" : ""
+        )}
+      >
+        <option value="pending">pending</option>
+        <option value="accepted">accepted</option>
+        <option value="rejected">rejected</option>
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-current" />
+    </div>
   );
 }
 
@@ -179,6 +233,10 @@ export default function QuoteGeneratedPage() {
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
   const [openDelete, setOpenDelete] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<QuoteItem | null>(null);
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+  const [statusOverrides, setStatusOverrides] = useState<
+    Record<string, QuoteStatus>
+  >({});
 
   const { data, isLoading, isError, error, isFetching } = useQuery<
     QuotesApiResponse,
@@ -202,6 +260,7 @@ export default function QuoteGeneratedPage() {
         email: item.personalInfo?.email?.trim() || "N/A",
         phone: item.personalInfo?.mobleNumber?.trim() || "N/A",
         date: formatDate(displayDate),
+        status: getQuoteStatus(item.status),
       };
     });
   }, [data]);
@@ -275,9 +334,81 @@ export default function QuoteGeneratedPage() {
     },
   });
 
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({
+      id,
+      status,
+    }: {
+      id: string;
+      status: QuoteStatus;
+    }) => {
+      const baseUrl = getApiBaseUrl();
+
+      if (!baseUrl) {
+        throw new Error(
+          "Missing API base URL. Please set NEXT_PUBLIC_API_BASE_URL or NEXT_PUBLIC_BACKEND_API_URL."
+        );
+      }
+
+      const response = await fetch(`${baseUrl}/quote/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      const json = (await response.json().catch(() => null)) as
+        | UpdateQuoteStatusApiResponse
+        | null;
+      const hasExplicitFailure =
+        json?.success === false || json?.status === false;
+
+      if (!response.ok || hasExplicitFailure) {
+        throw new Error(json?.message || "Failed to update quote status.");
+      }
+
+      return json;
+    },
+    onSuccess: async (_, variables) => {
+      toast.success("Quote status updated successfully.");
+      await queryClient.invalidateQueries({ queryKey: ["quotes"] });
+      setStatusOverrides((prev) => {
+        const next = { ...prev };
+        delete next[variables.id];
+        return next;
+      });
+    },
+    onError: (error, variables) => {
+      setStatusOverrides((prev) => {
+        const next = { ...prev };
+        delete next[variables.id];
+        return next;
+      });
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update status."
+      );
+    },
+    onSettled: () => {
+      setUpdatingStatusId(null);
+    },
+  });
+
   const handleConfirmDelete = () => {
     if (!deleteTarget) return;
     deleteQuoteMutation.mutate(deleteTarget.id);
+  };
+
+  const handleStatusChange = (item: QuoteItem, nextStatus: QuoteStatus) => {
+    const currentStatus = statusOverrides[item.id] ?? item.status;
+    if (currentStatus === nextStatus || updateStatusMutation.isPending) return;
+
+    setStatusOverrides((prev) => ({ ...prev, [item.id]: nextStatus }));
+    setUpdatingStatusId(item.id);
+    updateStatusMutation.mutate({
+      id: item.id,
+      status: nextStatus,
+    });
   };
 
   const deleteLabel =
@@ -320,6 +451,9 @@ export default function QuoteGeneratedPage() {
                     <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">
                       Date
                     </TableHead>
+                    <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">
+                      Status
+                    </TableHead>
                     <TableHead className="h-[42px] rounded-r-[8px] px-4 text-right text-[16px] font-medium text-[#00A56F]">
                       Action
                     </TableHead>
@@ -334,7 +468,7 @@ export default function QuoteGeneratedPage() {
                   ) : isError ? (
                     <TableRow>
                       <TableCell
-                        colSpan={5}
+                        colSpan={6}
                         className="h-32 text-center text-red-600"
                       >
                         Failed to load quotes: {error.message}
@@ -343,7 +477,7 @@ export default function QuoteGeneratedPage() {
                   ) : quotes.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={5}
+                        colSpan={6}
                         className="h-32 text-center text-[#64748B]"
                       >
                         No quotes found
@@ -369,6 +503,17 @@ export default function QuoteGeneratedPage() {
 
                         <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
                           {item.date}
+                        </TableCell>
+
+                        <TableCell className="px-4 py-[14px]">
+                          <QuoteStatusBadge
+                            value={statusOverrides[item.id] ?? item.status}
+                            onChange={(value) => handleStatusChange(item, value)}
+                            disabled={
+                              updateStatusMutation.isPending &&
+                              updatingStatusId === item.id
+                            }
+                          />
                         </TableCell>
 
                         <TableCell className="px-4 py-[14px]">

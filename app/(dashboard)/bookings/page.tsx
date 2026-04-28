@@ -54,12 +54,14 @@ type Quote = {
 type BookingStatusApi = "pending" | "confirmed" | "cancelled";
 type BookingStatusUi = "Pending" | "Confirmation" | "Cancellation";
 type BookingForUi = "Survey" | "Installation";
+type BookingForApi = "survey" | "installation";
 
 type BookingItem = {
   _id: string;
   quote?: Quote;
   price?: number;
   status: BookingStatusApi;
+  bookingFor?: BookingForApi | string;
   createdAt: string;
   updatedAt?: string;
 };
@@ -84,6 +86,12 @@ type DeleteBookingResponse = {
   message?: string;
 };
 
+type UpdateBookingForResponse = {
+  success?: boolean;
+  status?: boolean;
+  message?: string;
+};
+
 // ==================== COMPONENTS ====================
 
 function BookingSkeletonRow() {
@@ -101,9 +109,11 @@ function BookingSkeletonRow() {
 function BookingForBadge({
   value,
   onChange,
+  disabled,
 }: {
   value: BookingForUi;
   onChange: (value: BookingForUi) => void;
+  disabled?: boolean;
 }) {
   const styles =
     value === "Survey"
@@ -114,10 +124,12 @@ function BookingForBadge({
     <div className="relative w-[190px]">
       <select
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.value as BookingForUi)}
         className={cn(
           "h-[35px] w-full appearance-none rounded-full px-4 pr-10 text-[16px] font-medium outline-none",
-          styles
+          styles,
+          disabled ? "cursor-not-allowed opacity-70" : ""
         )}
       >
         <option value="Installation">Installation</option>
@@ -130,10 +142,8 @@ function BookingForBadge({
 
 function StatusBadge({
   value,
-  onChange,
 }: {
   value: BookingStatusUi;
-  onChange: (value: BookingStatusUi) => void;
 }) {
   const styles =
     value === "Pending"
@@ -143,20 +153,13 @@ function StatusBadge({
       : "bg-[#FDE8E8] text-[#F87171]";
 
   return (
-    <div className="relative w-[190px]">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as BookingStatusUi)}
-        className={cn(
-          "h-[35px] w-full appearance-none rounded-full px-4 pr-10 text-[16px] font-medium outline-none",
-          styles
-        )}
-      >
-        <option value="Confirmation">Confirmation</option>
-        <option value="Cancellation">Cancellation</option>
-        <option value="Pending">Pending</option>
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-current" />
+    <div
+      className={cn(
+        "inline-flex h-[35px] min-w-[190px] items-center justify-center rounded-full px-4 text-[16px] font-medium",
+        styles
+      )}
+    >
+      {value}
     </div>
   );
 }
@@ -202,9 +205,15 @@ function formatPrice(price?: number): string {
   return `£${price.toLocaleString()}`;
 }
 
-function getBookingFor(quote?: Quote): BookingForUi {
+function getBookingFor(bookingFor?: string, quote?: Quote): BookingForUi {
+  if (bookingFor === "installation") return "Installation";
+  if (bookingFor === "survey") return "Survey";
   if (!quote) return "Survey";
   return quote.surveyDate ? "Survey" : "Installation";
+}
+
+function getBookingForApiValue(value: BookingForUi): BookingForApi {
+  return value === "Survey" ? "survey" : "installation";
 }
 
 function getStatusForBadge(status: BookingStatusApi): BookingStatusUi {
@@ -250,6 +259,10 @@ export default function BookingManagementPage() {
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
   const [deleteTarget, setDeleteTarget] = useState<BookingItem | null>(null);
+  const [updatingBookingForId, setUpdatingBookingForId] = useState<string | null>(null);
+  const [bookingForOverrides, setBookingForOverrides] = useState<
+    Record<string, BookingForUi>
+  >({});
 
   const { data, isLoading, isError, error, isFetching } = useQuery<
     ApiResponse,
@@ -311,6 +324,65 @@ export default function BookingManagementPage() {
     },
   });
 
+  const updateBookingForMutation = useMutation({
+    mutationFn: async ({
+      id,
+      bookingFor,
+    }: {
+      id: string;
+      bookingFor: BookingForApi;
+    }) => {
+      const baseUrl = getApiBaseUrl();
+      if (!baseUrl) {
+        throw new Error(
+          "Missing API base URL. Please set NEXT_PUBLIC_API_BASE_URL or NEXT_PUBLIC_BACKEND_API_URL."
+        );
+      }
+
+      const res = await fetch(`${baseUrl}/booking/booking-for/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ bookingFor }),
+      });
+
+      const json = (await res.json().catch(() => null)) as
+        | UpdateBookingForResponse
+        | null;
+      const hasExplicitFailure = json?.success === false || json?.status === false;
+
+      if (!res.ok || hasExplicitFailure) {
+        throw new Error(json?.message || "Failed to update booking for.");
+      }
+
+      return json;
+    },
+    onSuccess: async (_, variables) => {
+      toast.success("Booking for updated successfully.");
+      await queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      setBookingForOverrides((prev) => {
+        const next = { ...prev };
+        delete next[variables.id];
+        return next;
+      });
+    },
+    onError: (error, variables) => {
+      setBookingForOverrides((prev) => {
+        const next = { ...prev };
+        delete next[variables.id];
+        return next;
+      });
+
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update booking for."
+      );
+    },
+    onSettled: () => {
+      setUpdatingBookingForId(null);
+    },
+  });
+
   const handleDeleteOpen = (item: BookingItem) => {
     setDeleteTarget(item);
     setOpenDeleteModal(true);
@@ -326,6 +398,20 @@ export default function BookingManagementPage() {
   const handleConfirmDelete = () => {
     if (!deleteTarget) return;
     deleteBookingMutation.mutate(deleteTarget._id);
+  };
+
+  const handleBookingForChange = (item: BookingItem, nextValue: BookingForUi) => {
+    const currentValue =
+      bookingForOverrides[item._id] ?? getBookingFor(item.bookingFor, item.quote);
+
+    if (currentValue === nextValue || updateBookingForMutation.isPending) return;
+
+    setBookingForOverrides((prev) => ({ ...prev, [item._id]: nextValue }));
+    setUpdatingBookingForId(item._id);
+    updateBookingForMutation.mutate({
+      id: item._id,
+      bookingFor: getBookingForApiValue(nextValue),
+    });
   };
 
   const deleteTargetName = deleteTarget
@@ -424,38 +510,42 @@ export default function BookingManagementPage() {
                           key={item._id}
                           className="border-b border-[#EDF1F4] hover:bg-transparent"
                         >
-                          <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
+                          <TableCell className="px-4 py-[14px] text-[14px] font-medium text-[#2D3D4D]">
                             {name}
                           </TableCell>
 
-                          <TableCell className="max-w-[190px] px-4 py-[14px] text-[16px] font-medium leading-6 text-[#2D3D4D]">
+                          <TableCell className="max-w-[190px] px-4 py-[14px] text-[14px] font-medium leading-6 text-[#2D3D4D]">
                             <span className="break-words">{email}</span>
                           </TableCell>
 
-                          <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
+                          <TableCell className="px-4 py-[14px] text-[14px] font-medium text-[#2D3D4D]">
                             {phone}
                           </TableCell>
 
-                          <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
+                          <TableCell className="px-4 py-[14px] text-[14px] font-medium text-[#2D3D4D]">
                             {formatDate(date)}
                           </TableCell>
 
-                          <TableCell className="px-4 py-[14px] text-[16px] font-medium text-[#2D3D4D]">
+                          <TableCell className="px-4 py-[14px] text-[14px] font-medium text-[#2D3D4D]">
                             {formatPrice(item.price)}
                           </TableCell>
 
                           <TableCell className="px-4 py-[14px]">
                             <BookingForBadge
-                              value={getBookingFor(item.quote)}
-                              onChange={() => {}}
+                              value={
+                                bookingForOverrides[item._id] ??
+                                getBookingFor(item.bookingFor, item.quote)
+                              }
+                              onChange={(value) => handleBookingForChange(item, value)}
+                              disabled={
+                                updateBookingForMutation.isPending &&
+                                updatingBookingForId === item._id
+                              }
                             />
                           </TableCell>
 
                           <TableCell className="px-4 py-[14px]">
-                            <StatusBadge
-                              value={getStatusForBadge(item.status)}
-                              onChange={() => {}}
-                            />
+                            <StatusBadge value={getStatusForBadge(item.status)} />
                           </TableCell>
 
                           <TableCell className="px-4 py-[14px]">
@@ -463,7 +553,7 @@ export default function BookingManagementPage() {
                               <Button
                                 type="button"
                                 onClick={() => handleOpenDetails(item)}
-                                className="h-[40px] rounded-full bg-[#00A56F1A] px-3 text-[16px] font-semibold text-[#12A150] hover:bg-[#dcf4e7]"
+                                className="h-[40px] rounded-full bg-[#00A56F1A] px-3 text-[14px] font-semibold text-[#12A150] hover:bg-[#dcf4e7]"
                               >
                                 <Eye className="mr-1.5 h-3.5 w-3.5" />
                                 View Details
