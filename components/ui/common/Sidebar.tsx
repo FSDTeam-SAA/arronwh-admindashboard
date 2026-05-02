@@ -20,7 +20,7 @@ import { signOut } from "next-auth/react";
 
 const navigation = [
   { name: "Dashboard Overview", href: "/", icon: LayoutDashboard },
-  { name: "Quote Generated", href: "/quotes", icon: FileText },
+  { name: "Quote Management", href: "/quotes", icon: FileText },
   { name: "Booking Management", href: "/bookings", icon: CalendarCheck },
   { name: "Products Management", href: "/products", icon: Wrench },
   // { name: "Quiz Management", href: "/all-users", icon: ListChecks },
