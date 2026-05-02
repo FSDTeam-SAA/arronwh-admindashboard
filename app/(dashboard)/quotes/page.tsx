@@ -420,9 +420,10 @@ export default function QuoteGeneratedPage() {
     <>
       <div className="min-h-screen bg-[#EEF2F5] px-4 py-5 sm:px-6 lg:px-3">
         <div className="w-full">
-          <div className="mb-5">
+          <div className="mb-5 flex justify-between items-center">
+            <div>
             <h1 className="text-[20px] font-bold leading-none text-[#2D3D4D] sm:text-[32px]">
-              Quote Generated
+              Quote Management
             </h1>
 
             <div className="mt-2 flex items-center gap-2 text-[16px] font-medium text-[#2D3D4D]">
@@ -430,7 +431,15 @@ export default function QuoteGeneratedPage() {
                 Dashboard
               </Link>
               <ChevronRight className="h-3.5 w-3.5 text-[#64748B]" />
-              <span>Quote Generated</span>
+              <span>Quote Management</span>
+            </div>
+            </div>
+            <div>
+              <Link href="/quotes/generate-quote">
+              <Button className="bg-[#FFDE59] hover:bg-[#FFC72D] text-[#2D3D4D] text-lg px-5 h-[48px]">
+                Generate Quote
+              </Button>
+              </Link>
             </div>
           </div>
 

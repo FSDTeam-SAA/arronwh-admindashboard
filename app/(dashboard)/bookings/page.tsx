@@ -463,7 +463,7 @@ export default function BookingManagementPage() {
                       Booking for
                     </TableHead>
                     <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">
-                      Status
+                     Job Status
                     </TableHead>
                     <TableHead className="h-[42px] rounded-r-[8px] px-4 text-[16px] font-medium text-[#00A56F]">
                       Action
