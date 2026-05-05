@@ -13,6 +13,9 @@ import {
   Settings,
   Menu,
   X,
+  InspectionPanel,
+  LogOut,
+  ReceiptText,
 } from "lucide-react";
 import { useState } from "react";
 import Image from "next/image";
@@ -20,6 +23,11 @@ import { signOut } from "next-auth/react";
 
 const navigation = [
   { name: "Dashboard Overview", href: "/", icon: LayoutDashboard },
+  { name: "Hero section", href: "/hero", icon: InspectionPanel },
+  { name: "Our Partners", href: "/our-partners", icon: FileText },
+  { name: "How it works", href: "/how-it-works", icon: FileText },
+  { name: "Privacy Policy", href: "/privacy-policy", icon: ReceiptText },
+  { name: "Terms & Conditions", href: "/terms-conditions", icon: FileText },
   { name: "Quote Management", href: "/quotes", icon: FileText },
   { name: "Booking Management", href: "/bookings", icon: CalendarCheck },
   { name: "Products Management", href: "/products", icon: Wrench },
@@ -57,7 +65,7 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile Menu Button - শুধু mobile এ এবং sidebar close থাকলে দেখাবে */}
+    
       {!isMobileMenuOpen && (
         <button
           onClick={toggleMobileMenu}
@@ -90,7 +98,7 @@ export function Sidebar() {
         <div className="flex flex-col items-center justify-center relative px-6 pt-6 pb-10">
           <div className="flex h-[100px] w-[220px] items-center justify-center">
             <Image
-              src="/logo1.png"
+              src="/logo2.png"
               alt="Logo"
               width={1000}
               height={1000}
@@ -126,7 +134,7 @@ export function Sidebar() {
                 className={cn(
                   "flex w-full min-w-0 items-center justify-start gap-3 rounded-[4px] px-4 py-2.5 text-sm font-medium transition-all duration-200",
                   isActive
-                    ? "bg-[#FFDE59] text-slate-900 shadow-[0_1px_0_rgba(0,0,0,0.04)]"
+                    ? "bg-[#FBFF26] text-slate-900 shadow-[0_1px_0_rgba(0,0,0,0.04)]"
                     : "text-slate-800 hover:bg-slate-100",
                 )}
               >
@@ -155,9 +163,10 @@ export function Sidebar() {
           <button
             type="button"
             onClick={() => setIsLogoutOpen(true)}
-            className="w-full rounded-[6px] border border-red-500 px-4 py-2.5 text-sm font-semibold text-red-500 transition hover:bg-red-50"
+            className="w-full flex items-center justify-center gap-3 rounded-[6px] border border-red-500 px-4 py-2.5 text-sm font-semibold text-red-500 transition hover:bg-red-50"
           >
-            Logout
+            <span><LogOut className="h-4 w-4" /></span>
+            Log out
           </button>
         </div>
       </div>

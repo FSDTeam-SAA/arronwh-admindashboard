@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import {
   ChevronRight,
   BadgePercent,
-  Star,
   ShieldCheck,
   Flame,
   Ruler,
@@ -48,7 +47,13 @@ export type ProductItem = {
 };
 
 function Tag({ label }: { label: string }) {
-  const isFinance = label.toLowerCase().includes("finance");
+  const normalizedLabel = label
+    .replace(/[^a-zA-Z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const isFinance = normalizedLabel.toLowerCase().includes("finance");
+
+  if (!normalizedLabel) return null;
 
   return (
     <div
@@ -57,10 +62,7 @@ function Tag({ label }: { label: string }) {
         isFinance ? "bg-[#6EC1F3] text-[#2D3D4D]" : "bg-[#F5D64E] text-[#2D3D4D]"
       )}
     >
-      {label.toLowerCase().includes("popular") ? (
-        <Star className="mr-1 h-3.5 w-3.5 fill-current" />
-      ) : null}
-      {label}
+      {normalizedLabel}
     </div>
   );
 }

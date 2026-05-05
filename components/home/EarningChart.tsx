@@ -48,7 +48,7 @@ const MONTH_LABEL: Record<string, string> = {
 const chartConfig = {
   value: {
     label: 'Overview',
-    color: '#F4BF24',
+    color: '#FBFF26',
   },
 } satisfies ChartConfig;
 
