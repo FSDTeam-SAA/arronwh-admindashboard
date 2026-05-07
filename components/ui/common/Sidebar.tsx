@@ -16,6 +16,7 @@ import {
   InspectionPanel,
   LogOut,
   ReceiptText,
+  HandFist,
 } from "lucide-react";
 import { useState } from "react";
 import Image from "next/image";
@@ -26,6 +27,7 @@ const navigation = [
   { name: "Hero section", href: "/hero", icon: InspectionPanel },
   { name: "Our Partners", href: "/our-partners", icon: FileText },
   { name: "How it works", href: "/how-it-works", icon: FileText },
+  { name: "Promise Section", href: "/promise", icon: HandFist },
   { name: "Privacy Policy", href: "/privacy-policy", icon: ReceiptText },
   { name: "Terms & Conditions", href: "/terms-conditions", icon: FileText },
   { name: "Quote Management", href: "/quotes", icon: FileText },
@@ -120,7 +122,7 @@ export function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 flex flex-col gap-1.5 px-4 pb-6 overflow-y-auto">
+        <nav className="flex-1 flex flex-col gap-1 px-4 pb-6 overflow-y-auto">
           {navigation.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -132,7 +134,7 @@ export function Sidebar() {
                 href={item.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={cn(
-                  "flex w-full min-w-0 items-center justify-start gap-3 rounded-[4px] px-4 py-2.5 text-sm font-medium transition-all duration-200",
+                  "flex w-full min-w-0 items-center justify-start gap-2 rounded-[4px] px-4 py-2 text-sm font-medium transition-all duration-200",
                   isActive
                     ? "bg-[#FBFF26] text-slate-900 shadow-[0_1px_0_rgba(0,0,0,0.04)]"
                     : "text-slate-800 hover:bg-slate-100",
