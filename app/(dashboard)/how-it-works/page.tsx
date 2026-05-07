@@ -1,11 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { Trash2, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from 'react';
+import Image from 'next/image';
 import { useSession } from 'next-auth/react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { Pencil, Trash2, UploadCloud, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -13,9 +24,27 @@ import {
   DialogPortal,
   DialogTitle,
 } from '@/components/ui/dialog';
-import Image from 'next/image';
 
-type YoloHeat = {
+type ApiEnvelope<T> = {
+  statusCode?: number;
+  success?: boolean;
+  status?: boolean;
+  message?: string;
+  meta?: {
+    page?: number;
+    limit?: number;
+    total?: number;
+  };
+  data?: T[] | T | null;
+};
+
+type HeaderItem = {
+  _id: string;
+  headerTitle: string;
+  headerDiscription: string;
+};
+
+type StepItem = {
   _id: string;
   image: string;
   title: string;
@@ -24,134 +53,414 @@ type YoloHeat = {
   updatedAt?: string;
 };
 
-type FormData = {
-  heder: string;
-  hederDiscription: string;
-  image: string;
-  title: string;
-  discription: string;
+type HeaderFormState = {
+  headerTitle: string;
+  headerDiscription: string;
 };
 
-const Page = () => {
-  const { data: session } = useSession();
-  const token = session?.accessToken;
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
-  const queryClient = useQueryClient();
-  const [isEditing, setIsEditing] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [openDeleteModal, setOpenDeleteModal] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<YoloHeat | null>(null);
+type StepFormState = {
+  title: string;
+  discription: string;
+  imageFile: File | null;
+};
 
-  const [formData, setFormData] = useState<FormData>({
-    heder: '',
-    hederDiscription: '',
-    image: '',
-    title: '',
-    discription: '',
+const EMPTY_HEADER_FORM: HeaderFormState = {
+  headerTitle: '',
+  headerDiscription: '',
+};
+
+const EMPTY_STEP_FORM: StepFormState = {
+  title: '',
+  discription: '',
+  imageFile: null,
+};
+
+const getApiBase = () => (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').replace(/\/+$/, '');
+
+const hasExplicitFailure = (payload: unknown) => {
+  if (!payload || typeof payload !== 'object') return false;
+  const parsed = payload as ApiEnvelope<unknown>;
+  return parsed.success === false || parsed.status === false;
+};
+
+const getApiMessage = (payload: unknown) => {
+  if (!payload || typeof payload !== 'object') return null;
+  const parsed = payload as ApiEnvelope<unknown>;
+  return typeof parsed.message === 'string' && parsed.message.trim()
+    ? parsed.message
+    : null;
+};
+
+const readString = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
+
+const toArray = (value: unknown) => {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === 'object') return [value];
+  return [];
+};
+
+const normalizeHeaderItems = (payload: unknown): HeaderItem[] => {
+  const parsed = payload as ApiEnvelope<unknown>;
+  const rows = toArray(parsed?.data);
+
+  return rows.map((entry, index) => {
+    const item = entry as Partial<HeaderItem>;
+    const id = readString(item._id) || `header-${index}`;
+    return {
+      _id: id,
+      headerTitle: readString(item.headerTitle),
+      headerDiscription: readString(item.headerDiscription),
+    };
   });
+};
 
-  // Fetch Data
-  const { data, isLoading } = useQuery({
-    queryKey: ['yoloheat', token],
+const normalizeStepItems = (payload: unknown): StepItem[] => {
+  const parsed = payload as ApiEnvelope<unknown>;
+  const rows = toArray(parsed?.data);
+
+  return rows
+    .map((entry, index) => {
+      const item = entry as Partial<StepItem>;
+      const id = readString(item._id) || `step-${index}`;
+      const title = readString(item.title);
+      const discription = readString(item.discription);
+      const image = readString(item.image);
+
+      if (!title && !discription && !image) return null;
+
+      return {
+        _id: id,
+        title,
+        discription,
+        image,
+        createdAt: readString(item.createdAt),
+        updatedAt: readString(item.updatedAt),
+      } as StepItem;
+    })
+    .filter((item): item is StepItem => item !== null);
+};
+
+export default function HowItWorksPage() {
+  const { data: session, status } = useSession();
+  const token = session?.accessToken;
+  const queryClient = useQueryClient();
+
+  const stepFormRef = useRef<HTMLDivElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [headerForm, setHeaderForm] = useState<HeaderFormState>(EMPTY_HEADER_FORM);
+  const [stepForm, setStepForm] = useState<StepFormState>(EMPTY_STEP_FORM);
+  const [editingStepId, setEditingStepId] = useState<string | null>(null);
+  const [currentImageUrl, setCurrentImageUrl] = useState('');
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [openDeleteModal, setOpenDeleteModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<StepItem | null>(null);
+
+  const apiBase = useMemo(getApiBase, []);
+  const headerEndpoint = useMemo(
+    () => (apiBase ? `${apiBase}/yoloheat/header` : '/yoloheat/header'),
+    [apiBase]
+  );
+  const stepsEndpoint = useMemo(
+    () => (apiBase ? `${apiBase}/yoloheat` : '/yoloheat'),
+    [apiBase]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const headerQuery = useQuery({
+    queryKey: ['yoloheat-header', token],
+    enabled: Boolean(token),
     queryFn: async () => {
-      const res = await fetch(`${apiBase}/yoloheat`, {
+      const response = await fetch(headerEndpoint, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
-      if (!res.ok) throw new Error('Failed to fetch');
-      const json = await res.json();
-      return json.data as YoloHeat[];
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok || hasExplicitFailure(payload)) {
+        throw new Error(getApiMessage(payload) ?? 'Failed to load header data.');
+      }
+
+      return normalizeHeaderItems(payload);
     },
   });
 
-  // Update Mutation
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, payload }: { id: string; payload: FormData }) => {
-      const res = await fetch(`${apiBase}/yoloheat/${id}`, {
-        method: 'PATCH',
+  const stepsQuery = useQuery({
+    queryKey: ['yoloheat-steps', token],
+    enabled: Boolean(token),
+    queryFn: async () => {
+      const response = await fetch(stepsEndpoint, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok || hasExplicitFailure(payload)) {
+        throw new Error(getApiMessage(payload) ?? 'Failed to load steps data.');
+      }
+
+      return normalizeStepItems(payload);
+    },
+  });
+
+  useEffect(() => {
+    const currentHeader = headerQuery.data?.[0];
+    if (!currentHeader) return;
+
+    setHeaderForm({
+      headerTitle: currentHeader.headerTitle,
+      headerDiscription: currentHeader.headerDiscription,
+    });
+  }, [headerQuery.data]);
+
+  const resetStepForm = () => {
+    setStepForm(EMPTY_STEP_FORM);
+    setEditingStepId(null);
+    setCurrentImageUrl('');
+    setPreviewUrl('');
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
+  };
+
+  const postStepData = async (payload: FormData) => {
+    const response = await fetch(stepsEndpoint, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: payload,
+    });
+    const result = await response.json().catch(() => null);
+
+    if (!response.ok || hasExplicitFailure(result)) {
+      throw new Error(getApiMessage(result) ?? 'Failed to save step.');
+    }
+
+    return result;
+  };
+
+  const saveHeaderMutation = useMutation({
+    mutationFn: async (payload: HeaderFormState) => {
+      const response = await fetch(headerEndpoint, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error('Update failed');
-      return res.json();
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || hasExplicitFailure(result)) {
+        throw new Error(getApiMessage(result) ?? 'Failed to save header.');
+      }
+
+      return result;
     },
     onSuccess: () => {
-      toast.success('Updated successfully!');
-      queryClient.invalidateQueries({ queryKey: ['yoloheat', token] });
-      resetForm();
+      toast.success('Header saved successfully.');
+      queryClient.invalidateQueries({ queryKey: ['yoloheat-header', token] });
     },
-    onError: () => toast.error('Failed to update'),
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to save header.'
+      );
+    },
   });
 
-  // Delete Mutation
-  const deleteMutation = useMutation({
+  const saveStepMutation = useMutation({
+    mutationFn: async ({
+      formData,
+      editId,
+    }: {
+      formData: StepFormState;
+      editId: string | null;
+    }) => {
+      const title = formData.title.trim();
+      const discription = formData.discription.trim();
+
+      if (!title || !discription) {
+        throw new Error('Please fill in both title and description.');
+      }
+
+      if (!editId && !formData.imageFile) {
+        throw new Error('Image is required when adding a new step.');
+      }
+
+      if (!editId) {
+        const createPayload = new FormData();
+        createPayload.append('title', title);
+        createPayload.append('discription', discription);
+        if (formData.imageFile) {
+          createPayload.append('image', formData.imageFile);
+        }
+        return postStepData(createPayload);
+      }
+
+      const updatePayload = new FormData();
+      updatePayload.append('title', title);
+      updatePayload.append('discription', discription);
+      if (formData.imageFile) {
+        updatePayload.append('image', formData.imageFile);
+      }
+
+      const patchResponse = await fetch(`${stepsEndpoint}/${editId}`, {
+        method: 'PATCH',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: updatePayload,
+      });
+      const patchResult = await patchResponse.json().catch(() => null);
+
+      if (patchResponse.ok && !hasExplicitFailure(patchResult)) {
+        return patchResult;
+      }
+
+      if (patchResponse.status === 404 || patchResponse.status === 405) {
+        if (!formData.imageFile) {
+          throw new Error(
+            'For this server edit fallback, please re-select an image and submit again.'
+          );
+        }
+
+        const fallbackPayload = new FormData();
+        fallbackPayload.append('title', title);
+        fallbackPayload.append('discription', discription);
+        fallbackPayload.append('image', formData.imageFile);
+        return postStepData(fallbackPayload);
+      }
+
+      throw new Error(getApiMessage(patchResult) ?? 'Failed to update step.');
+    },
+    onSuccess: (_result, variables) => {
+      toast.success(
+        variables.editId ? 'Step updated successfully.' : 'Step added successfully.'
+      );
+      queryClient.invalidateQueries({ queryKey: ['yoloheat-steps', token] });
+      resetStepForm();
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to save step.');
+    },
+  });
+
+  const deleteStepMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`${apiBase}/yoloheat/${id}`, {
+      const response = await fetch(`${stepsEndpoint}/${id}`, {
         method: 'DELETE',
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
-      if (!res.ok) throw new Error('Delete failed');
-      return id;
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || hasExplicitFailure(result)) {
+        throw new Error(getApiMessage(result) ?? 'Failed to delete step.');
+      }
+
+      return result;
     },
     onSuccess: () => {
-      toast.success('Item deleted successfully!');
-      queryClient.invalidateQueries({ queryKey: ['yoloheat', token] });
+      toast.success('Step deleted successfully.');
+      queryClient.invalidateQueries({ queryKey: ['yoloheat-steps', token] });
       setOpenDeleteModal(false);
       setDeleteTarget(null);
+      if (deleteTarget?._id === editingStepId) {
+        resetStepForm();
+      }
     },
-    onError: () => toast.error('Failed to delete item'),
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to delete step.'
+      );
+    },
   });
 
-  const resetForm = () => {
-    setFormData({
-      heder: '',
-      hederDiscription: '',
-      image: '',
-      title: '',
-      discription: '',
-    });
-    setImagePreview(null);
-    setIsEditing(false);
-    setEditId(null);
-  };
+  const handleHeaderSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const payload = {
+      headerTitle: headerForm.headerTitle.trim(),
+      headerDiscription: headerForm.headerDiscription.trim(),
+    };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setImagePreview(url);
-      setFormData(prev => ({ ...prev, image: url }));
+    if (!payload.headerTitle || !payload.headerDiscription) {
+      toast.error('Please fill in header title and description.');
+      return;
     }
+
+    saveHeaderMutation.mutate(payload);
   };
 
-  const handleEdit = (item: YoloHeat) => {
-    setFormData({
-      heder: item.title,
-      hederDiscription: '',
-      image: item.image,
+  const handleStepSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    saveStepMutation.mutate({
+      formData: stepForm,
+      editId: editingStepId,
+    });
+  };
+
+  const handleHeaderChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = event.target;
+    setHeaderForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleStepFieldChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = event.target;
+    setStepForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleStepImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    setStepForm((prev) => ({
+      ...prev,
+      imageFile: file,
+    }));
+
+    if (!file) {
+      setPreviewUrl('');
+      return;
+    }
+
+    if (previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    const nextUrl = URL.createObjectURL(file);
+    setPreviewUrl(nextUrl);
+  };
+
+  const handleEditStep = (item: StepItem) => {
+    setEditingStepId(item._id);
+    setStepForm({
       title: item.title,
       discription: item.discription,
+      imageFile: null,
     });
-    setImagePreview(item.image);
-    setEditId(item._id);
-    setIsEditing(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setCurrentImageUrl(item.image);
+    setPreviewUrl('');
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
+    stepFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const handleDeleteOpen = (item: YoloHeat) => {
+  const handleOpenDelete = (item: StepItem) => {
     setDeleteTarget(item);
     setOpenDeleteModal(true);
   };
 
-  const handleDeleteClose = (nextOpen: boolean) => {
+  const handleCloseDelete = (nextOpen: boolean) => {
     setOpenDeleteModal(nextOpen);
     if (!nextOpen) {
       setDeleteTarget(null);
@@ -160,188 +469,294 @@ const Page = () => {
 
   const handleConfirmDelete = () => {
     if (!deleteTarget) return;
-    deleteMutation.mutate(deleteTarget._id);
+    deleteStepMutation.mutate(deleteTarget._id);
   };
 
-  const deleteLabel = deleteTarget?.title ?? 'this item';
+  const combinedLoading =
+    status === 'loading' || headerQuery.isLoading || stepsQuery.isLoading;
+  const previewImage = previewUrl || currentImageUrl;
+  const deleteLabel = deleteTarget?.title || 'this step';
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editId) {
-      toast.error("Edit mode only for now");
-      return;
-    }
-    updateMutation.mutate({ id: editId, payload: formData });
-  };
+  if (status === 'unauthenticated') {
+    return (
+      <div className="rounded-2xl border border-red-100 bg-red-50 p-6 text-red-700">
+        Please sign in first to manage How It Works content.
+      </div>
+    );
+  }
+
+  if (combinedLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-40 animate-pulse rounded-3xl bg-slate-200" />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="h-72 animate-pulse rounded-2xl bg-slate-200" />
+          <div className="h-72 animate-pulse rounded-2xl bg-slate-200" />
+        </div>
+        <div className="grid gap-6 xl:grid-cols-[1.05fr_1.25fr]">
+          <div className="h-[520px] animate-pulse rounded-2xl bg-slate-200" />
+          <div className="h-[520px] animate-pulse rounded-2xl bg-slate-200" />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen py-10">
+    <div className="space-y-6 pb-10">
+  
+
       <div className="w-full">
+        <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
+          <div className="mb-5">
+            <h2 className="text-xl font-semibold text-[#0F172A]">
+              Header Information
+            </h2>
+          </div>
 
-        {/* Form */}
-        <div className="bg-white shadow-lg rounded-2xl p-8 mb-12">
-          <h1 className="text-3xl font-bold mb-10 text-[#111111]">
-            How It Works Management
-          </h1>
-
-          <h2 className="text-2xl font-semibold mb-6">
-            {isEditing ? 'Edit Item' : 'Add New Item'}
-          </h2>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-1">Header</label>
-                <input
-                  type="text"
-                  name="heder"
-                  value={formData.heder}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Header"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Title</label>
-                <input
-                  type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Title"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Header Description</label>
-              <textarea
-                name="hederDiscription"
-                value={formData.hederDiscription}
-                onChange={handleChange}
-                rows={3}
-                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          <form onSubmit={handleHeaderSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="headerTitle">Header Title</Label>
+              <Input
+                id="headerTitle"
+                name="headerTitle"
+                value={headerForm.headerTitle}
+                onChange={handleHeaderChange}
+                className="h-11"
+                placeholder="How Does YOLO HEAT Work?"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
-              <textarea
+            <div className="space-y-2">
+              <Label htmlFor="headerDiscription">Header Description</Label>
+              <Textarea
+                id="headerDiscription"
+                name="headerDiscription"
+                value={headerForm.headerDiscription}
+                onChange={handleHeaderChange}
+                className="min-h-28"
+                placeholder="Get your quote, book your service..."
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                type="submit"
+                disabled={saveHeaderMutation.isPending}
+                className="h-11 bg-[#F5D64E] px-6 font-semibold text-[#2D3D4D] hover:bg-[#edcf47]"
+              >
+                {saveHeaderMutation.isPending ? 'Saving...' : 'Save Header'}
+              </Button>
+            </div>
+          </form>
+        </section>
+      </div>
+
+      <section className="grid gap-6 xl:grid-cols-[1.05fr_1.25fr]">
+        <div
+          ref={stepFormRef}
+          className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm"
+        >
+          <div className="mb-5">
+            <h2 className="text-xl font-semibold text-[#0F172A]">
+              {editingStepId ? 'Edit Step' : 'Add New Step'}
+            </h2>
+          </div>
+
+          <form onSubmit={handleStepSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="step-title">Title</Label>
+              <Input
+                id="step-title"
+                name="title"
+                value={stepForm.title}
+                onChange={handleStepFieldChange}
+                className="h-11"
+                placeholder="Discover"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="step-discription">Description</Label>
+              <Textarea
+                id="step-discription"
                 name="discription"
-                value={formData.discription}
-                onChange={handleChange}
-                rows={5}
-                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
+                value={stepForm.discription}
+                onChange={handleStepFieldChange}
+                className="min-h-32"
+                placeholder="Answer a few quick questions..."
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Image</label>
+            <div className="space-y-3">
+              <Label htmlFor="step-image">Image Upload</Label>
               <input
+                id="step-image"
+                ref={imageInputRef}
                 type="file"
                 accept="image/*"
-                onChange={handleImageChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                onChange={handleStepImageChange}
+                className="hidden"
               />
-              {imagePreview && (
-                <Image
-                  src={imagePreview}
-                  width={1000}
-                  height={1000}
-                  alt="preview"
-                  className="mt-4 w-full max-h-64 object-cover rounded-lg border"
-                />
+              <label
+                htmlFor="step-image"
+                className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 py-5 transition hover:bg-[#F1F5F9]"
+              >
+                <UploadCloud className="h-6 w-6 text-[#0E7490]" />
+                <div>
+                  <p className="text-sm font-medium text-[#1E293B]">
+                    Click to choose image
+                  </p>
+                  <p className="text-xs text-[#64748B]">
+                    JPG, PNG or WEBP image for this step
+                  </p>
+                </div>
+              </label>
+
+              {previewImage ? (
+                <div className="relative h-44 overflow-hidden rounded-xl border border-[#E2E8F0]">
+                  <Image
+                    src={previewImage}
+                    alt={stepForm.title || 'Step preview'}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 420px"
+                  />
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 py-7 text-center text-sm text-[#64748B]">
+                  No image selected yet.
+                </div>
+              )}
+
+              {editingStepId && !stepForm.imageFile && (
+                <p className="text-xs text-[#64748B]">
+                  Editing mode: keep current image or upload a new image.
+                </p>
               )}
             </div>
 
-            <div className="flex gap-4">
-              <button
+            <div className="flex flex-wrap gap-3 pt-2">
+              <Button
                 type="submit"
-                disabled={updateMutation.isPending}
-                className="bg-[#00A56F] h-[48px] px-6 text-white font-semibold  rounded-lg disabled:opacity-50"
+                disabled={saveStepMutation.isPending}
+                className="h-11 bg-[#F5D64E] px-6 font-normal text-xl text-[#2D3D4D] hover:bg-[#edcf47]"
               >
-                {updateMutation.isPending ? 'Updating...' : isEditing ? 'Update Item' : 'Create Item'}
-              </button>
+                {saveStepMutation.isPending
+                  ? 'Saving...'
+                  : editingStepId
+                    ? 'Update Step'
+                    : 'Add Step'}
+              </Button>
 
-              {isEditing && (
-                <button
+              {editingStepId && (
+                <Button
                   type="button"
-                  onClick={resetForm}
-                  className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-4 rounded-lg"
+                  variant="outline"
+                  onClick={resetStepForm}
+                  className="h-11 border-[#94A3B8] px-6 text-[#334155]"
                 >
-                  Cancel
-                </button>
+                  Cancel Edit
+                </Button>
               )}
             </div>
           </form>
         </div>
 
-        {/* Data List */}
-        <h2 className="text-2xl font-semibold mb-6">Existing Items</h2>
-
-        {isLoading ? (
-          <p>Loading...</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {data?.map((item) => (
-              <div key={item._id} className="bg-white rounded-2xl shadow p-6">
-                <Image
-                  src={item.image}
-                  alt={item.title}
-                  width={1000}
-                  height={1000}
-                  className="w-full h-52 object-cover rounded-xl mb-4"
-                />
-                <h3 className="text-xl font-semibold mb-2">{item.title}</h3>
-                <p className="text-gray-600 line-clamp-3 mb-6">{item.discription}</p>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => handleEdit(item)}
-                    className="bg-gray-900 hover:bg-black text-white py-3 rounded-lg font-medium"
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    onClick={() => handleDeleteOpen(item)}
-                    disabled={deleteMutation.isPending}
-                    className="bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-medium disabled:opacity-50"
-                  >
-                    {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-                  </button>
-                </div>
-              </div>
-            ))}
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
+          <div className="mb-5">
+            <h2 className="text-xl font-semibold text-[#0F172A]">Existing Steps</h2>
           </div>
-        )}
-      </div>
 
-      <Dialog open={openDeleteModal} onOpenChange={handleDeleteClose}>
+          {stepsQuery.isError ? (
+            <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {stepsQuery.error instanceof Error
+                ? stepsQuery.error.message
+                : 'Failed to load steps.'}
+            </div>
+          ) : stepsQuery.data && stepsQuery.data.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {stepsQuery.data.map((item) => (
+                <article
+                  key={item._id}
+                  className="group overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="relative mb-4 h-40 overflow-hidden rounded-xl bg-[#E2E8F0]">
+                    {item.image ? (
+                      <Image
+                        src={item.image}
+                        alt={item.title || 'Step image'}
+                        fill
+                        className="object-cover transition group-hover:scale-[1.02]"
+                        sizes="(max-width: 768px) 100vw, 320px"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-sm text-[#64748B]">
+                        No image
+                      </div>
+                    )}
+                  </div>
+
+                  <h3 className="text-lg font-semibold text-[#0F172A]">
+                    {item.title || 'Untitled'}
+                  </h3>
+                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-[#475569]">
+                    {item.discription || 'No description'}
+                  </p>
+
+                  <div className="mt-5 grid grid-cols-2 gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleEditStep(item)}
+                      className="h-10 border-[#94A3B8] text-[#334155]"
+                    >
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Edit
+                    </Button>
+
+                    <Button
+                      type="button"
+                      onClick={() => handleOpenDelete(item)}
+                      disabled={deleteStepMutation.isPending}
+                      className="h-10 bg-red-600 text-white hover:bg-red-700"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </Button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 py-12 text-center text-sm text-[#64748B]">
+              No steps found yet. Add your first step from the form.
+            </div>
+          )}
+        </div>
+      </section>
+
+      <Dialog open={openDeleteModal} onOpenChange={handleCloseDelete}>
         <DialogPortal>
           <DialogOverlay className="bg-[#2D3D4DCC]" />
 
-          <DialogContent className="w-[420px] max-w-[92vw] sm:max-w-[92vw] gap-0 rounded-[16px] border-none bg-white p-6 text-center shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
+          <DialogContent className="w-[420px] max-w-[92vw] gap-0 rounded-[16px] border-none bg-white p-6 text-center shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#F4F7F9] text-[#F5D64E]">
               <Trash2 className="h-6 w-6" />
             </div>
 
             <DialogTitle className="mt-4 text-[18px] font-semibold text-[#2D3D4D]">
-              Are you sure?
+              Delete Step?
             </DialogTitle>
             <p className="mt-2 text-[13px] text-[#64748B]">
-              You want to delete {deleteLabel} from this Dashboard.
+              You are about to delete <span className="font-semibold">{deleteLabel}</span>.
             </p>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => handleDeleteClose(false)}
-                disabled={deleteMutation.isPending}
+                onClick={() => handleCloseDelete(false)}
+                disabled={deleteStepMutation.isPending}
                 className="h-[40px] rounded-[10px] border border-[#F5D64E] bg-transparent px-6 text-[14px] font-semibold text-[#F5D64E] hover:bg-transparent"
               >
                 <X className="mr-2 h-4 w-4" />
@@ -351,10 +766,10 @@ const Page = () => {
               <Button
                 type="button"
                 onClick={handleConfirmDelete}
-                disabled={deleteMutation.isPending}
+                disabled={deleteStepMutation.isPending}
                 className="h-[40px] rounded-[10px] bg-[#F5D64E] px-6 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#edcf47] disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                {deleteStepMutation.isPending ? 'Deleting...' : 'Delete'}
               </Button>
             </div>
           </DialogContent>
@@ -362,6 +777,4 @@ const Page = () => {
       </Dialog>
     </div>
   );
-};
-
-export default Page;
+}

@@ -133,6 +133,11 @@ function getItemPrice(item?: QuoteSelectableItem | string | null): string {
   return formatCurrency(payable);
 }
 
+function getWhatsappNumber(phone?: string): string {
+  if (!phone) return "";
+  return phone.replace(/\D/g, "");
+}
+
 function QuoteDetailsSkeleton() {
   return (
     <div className="max-h-[calc(92vh-76px)] overflow-y-auto px-4 py-4 sm:px-5">
@@ -236,6 +241,12 @@ export function QuoteDetailsModal({
       ? "Pay monthly"
       : "Not specified"
     : "N/A";
+  const whatsappNumber = getWhatsappNumber(quote?.personalInfo?.mobleNumber);
+
+  const handleWhatsappClick = () => {
+    if (!whatsappNumber) return;
+    window.location.href = `https://wa.me/${whatsappNumber}`;
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -413,8 +424,12 @@ export function QuoteDetailsModal({
                   Email quote via email
                 </Button>
 
-                <Button className="h-[48px] w-full rounded-[4px] bg-[#00A56F] text-[16px] font-semibold text-white hover:bg-[#009562]">
-                  Call Your customer
+                <Button
+                  className="h-[48px] w-full rounded-[4px] bg-[#00A56F] text-[16px] font-semibold text-white hover:bg-[#009562]"
+                  onClick={handleWhatsappClick}
+                  disabled={!whatsappNumber}
+                >
+                  Call Your customer via whatsapp
                 </Button>
               </div>
             </div>

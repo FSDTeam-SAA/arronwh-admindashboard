@@ -236,6 +236,11 @@ function getItemPrice(item?: QuoteSelectableItem | string | null): string {
   return formatCurrency(payable);
 }
 
+function getWhatsappNumber(phone?: string): string {
+  if (!phone) return "";
+  return phone.replace(/\D/g, "");
+}
+
 function getStatusLabel(status?: BookingItem["status"]): string {
   if (status === "confirmed") return "Confirmed";
   if (status === "cancelled") return "Cancelled";
@@ -374,6 +379,12 @@ export function BookingDetailsModal({
       ? "Pay monthly"
       : "Not specified"
     : "N/A";
+  const whatsappNumber = getWhatsappNumber(quote?.personalInfo?.mobleNumber);
+
+  const handleWhatsappClick = () => {
+    if (!whatsappNumber) return;
+    window.location.href = `https://wa.me/${whatsappNumber}`;
+  };
 
   if (!bookingId) return null;
 
@@ -704,8 +715,12 @@ export function BookingDetailsModal({
                   Email quote via email
                 </Button>
 
-                <Button className="h-[48px] w-full rounded-[4px] bg-[#00A56F] text-[16px] font-semibold text-white hover:bg-[#009562]">
-                  Call Your customer
+                <Button
+                  className="h-[48px] w-full rounded-[4px] bg-[#00A56F] text-[16px] font-semibold text-white hover:bg-[#009562]"
+                  onClick={handleWhatsappClick}
+                  disabled={!whatsappNumber}
+                >
+                  Call Your customer via WhatsApp
                 </Button>
               </div>
             </div>
