@@ -413,7 +413,7 @@ export default function PromisePage() {
             <Button
               type="submit"
               disabled={updateMutation.isPending || !boxId}
-              className="h-11 bg-[#F5D64E] px-6 font-semibold text-[#2D3D4D] hover:bg-[#edcf47]"
+              className="h-11 bg-[#FBFF26] px-6 font-semibold text-[#2D3D4D] hover:bg-[#FBFF26]/95"
             >
               {updateMutation.isPending ? 'Saving...' : 'Update Promise'}
             </Button>

@@ -510,7 +510,7 @@ export default function HeroPage() {
             <Button
               type="submit"
               disabled={isSaving}
-              className="bg-[#FFDE59] text-[#1E1E1E] hover:bg-[#FFDE59]/90 text-base h-[48px]"
+              className="bg-[#FBFF26] text-[#1E1E1E] hover:bg-[#FFDE59]/90 text-base h-[48px]"
             >
               {isSaving ? "Saving..." : "Update Banner"}
             </Button>

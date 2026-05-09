@@ -70,7 +70,7 @@ function PaginationPrevious({
     <PaginationLink
       aria-label="Go to previous page"
       size="default"
-      className={cn("pl-1.5!", className)}
+      className={cn("pl-1.5! text-", className)}
       {...props}
     >
       <ChevronLeftIcon data-icon="inline-start" />

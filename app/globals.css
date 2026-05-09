@@ -6,6 +6,11 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  .bg-\[\#FBFF26\],
+  .bg-\[\#FBFF26\] * {
+    color: #000000 !important;
+  }
 }
 
 .quill-editor .ql-toolbar {

@@ -420,7 +420,7 @@ export function QuoteDetailsModal({
               </div>
 
               <div className="mt-5 space-y-3">
-                <Button className="h-[48px] w-full rounded-[4px] bg-[#FFDE59] text-[16px] font-semibold text-[#2D3D4D] hover:bg-[#edcf47]">
+                <Button className="h-[48px] w-full rounded-[4px] bg-[#FFDE59] text-[16px] font-semibold text-[#2D3D4D] hover:bg-[#FBFF26]/95">
                   Email quote via email
                 </Button>
 

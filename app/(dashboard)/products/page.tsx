@@ -102,7 +102,7 @@ function Tag({ label }: { label: string }) {
     <div
       className={cn(
         "inline-flex h-[38px] items-center justify-center rounded-full px-3 text-[11px] sm:text-[16px] font-medium",
-        isFinance ? "bg-[#6EC1F3] text-[#2D3D4D]" : "bg-[#F5D64E] text-[#2D3D4D]"
+        isFinance ? "bg-[#6EC1F3] text-[#2D3D4D]" : "bg-[#FBFF26] text-[#2D3D4D]"
       )}
     >
       {normalizedLabel}
@@ -596,14 +596,14 @@ export default function ServiceManagementPage() {
 
             <div className="flex flex-col items-start gap-4 sm:items-end">
               <div className="flex items-center gap-4">
-                <span className="inline-flex h-[40px] min-w-[140px] items-center justify-center rounded-[8px] bg-[#F5D64E] px-5 text-[15px] font-medium text-[#2D3D4D]">
+                <span className="inline-flex h-[40px] min-w-[140px] items-center justify-center rounded-[8px] bg-[#FBFF26] px-5 text-[15px] font-medium text-[#2D3D4D]">
                   Boiler Systems
                 </span>
               </div>
 
               <Button
                 onClick={() => setOpenAddBoiler(true)}
-                className="h-[48px] rounded-[8px] bg-[#F5D64E] px-6 text-[16px] font-medium text-[#2D3D4D] hover:bg-[#edcf47]"
+                className="h-[48px] rounded-[8px] bg-[#FBFF26] px-6 text-[16px] font-medium text-[#2D3D4D] hover:bg-[#FBFF26]/95"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 {addButtonText}
@@ -707,7 +707,7 @@ export default function ServiceManagementPage() {
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={deleteProductMutation.isPending}
-                className="h-[40px] rounded-[10px] bg-[#F5D64E] px-6 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#edcf47]"
+                className="h-[40px] rounded-[10px] bg-[#FBFF26] px-6 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#FBFF26]/95"
               >
                 {deleteProductMutation.isPending ? "Deleting..." : "Delete"}
               </Button>

@@ -16,6 +16,33 @@ interface TermsCondition {
   description: string;
 }
 
+type ApiEnvelope<T> = {
+  success?: boolean;
+  status?: boolean;
+  message?: string;
+  data?: T[] | T | null;
+};
+
+const hasExplicitFailure = (payload: unknown) => {
+  if (!payload || typeof payload !== 'object') return false;
+  const parsed = payload as ApiEnvelope<unknown>;
+  return parsed.success === false || parsed.status === false;
+};
+
+const getApiMessage = (payload: unknown) => {
+  if (!payload || typeof payload !== 'object') return null;
+  const parsed = payload as ApiEnvelope<unknown>;
+  return typeof parsed.message === 'string' && parsed.message.trim()
+    ? parsed.message
+    : null;
+};
+
+const getFirstRow = <T,>(payload: unknown) => {
+  const parsed = payload as ApiEnvelope<T>;
+  if (Array.isArray(parsed?.data)) return parsed.data[0] ?? null;
+  return (parsed?.data ?? null) as T | null;
+};
+
 const TermsConditionsPage = () => {
   const { data: session } = useSession();
   const token = session?.accessToken;
@@ -24,13 +51,25 @@ const TermsConditionsPage = () => {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['termsconditions', token],
+    enabled: Boolean(token),
     queryFn: async () => {
       const res = await fetch(`${apiBase}/termsconditions`, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
-      if (!res.ok) throw new Error('Failed to fetch terms and conditions');
-      const json = await res.json();
-      return json.data[0] as TermsCondition;
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok || hasExplicitFailure(json)) {
+        throw new Error(
+          getApiMessage(json) ?? 'Failed to fetch terms and conditions'
+        );
+      }
+
+      const row = getFirstRow<TermsCondition>(json);
+      if (!row?._id) {
+        throw new Error('Terms and conditions data not found');
+      }
+
+      return row;
     },
   });
 
@@ -50,9 +89,14 @@ const TermsConditionsPage = () => {
         },
         body: JSON.stringify(updatedData),
       });
+      const result = await res.json().catch(() => null);
 
-      if (!res.ok) throw new Error('Failed to update terms and conditions');
-      return res.json();
+      if (!res.ok || hasExplicitFailure(result)) {
+        throw new Error(
+          getApiMessage(result) ?? 'Failed to update terms and conditions'
+        );
+      }
+      return result;
     },
     onSuccess: () => {
       toast.success('Terms & Conditions updated successfully!');
@@ -155,14 +199,13 @@ const TermsConditionsPage = () => {
           <div className="b">
             <ReactQuill
               theme="snow"
-              value={formData.description}
+              value={formData.description}  
               onChange={(content) =>
                 setFormData({ ...formData, description: content })
               }
-              className="h-auto"
               modules={{
                 toolbar: [
-                  [{ header: [1, 2, false] }],
+                  [{ header: [1, 2, false] }],  
                   ['bold', 'italic', 'underline', 'strike'],
                   [{ list: 'ordered' }, { list: 'bullet' }],
                   ['link'],
@@ -176,7 +219,7 @@ const TermsConditionsPage = () => {
         <button
           type="submit"
           disabled={mutation.isPending}
-          className="px-8 py-3 bg-[#FFDE59] text-black rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition"
+          className="px-8 py-3 bg-[#FBFF26] text-black rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
           {mutation.isPending ? 'Saving...' : 'Update Terms & Conditions'}
         </button>

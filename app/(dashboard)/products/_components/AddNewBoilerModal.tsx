@@ -508,7 +508,7 @@
 //                   <Button
 //                     type="button"
 //                     onClick={() => setIsEditingBadges((prev) => !prev)}
-//                     className="h-[28px] bg-[#F5D64E] px-4 text-[16px] text-[#2D3D4D] hover:bg-[#edcf47]"
+//                     className="h-[28px] bg-[#FBFF26] px-4 text-[16px] text-[#2D3D4D] hover:bg-[#FBFF26]/95"
 //                   >
 //                     <Pencil className="mr-1.5 h-3.5 w-3.5" />
 //                     {isEditingBadges ? "Done" : "Edit"}
@@ -636,7 +636,7 @@
 //                   <Button
 //                     type="button"
 //                     onClick={() => setIsEditingFeatures((prev) => !prev)}
-//                     className="h-[28px] bg-[#F5D64E] px-4 text-[16px] text-[#2D3D4D] hover:bg-[#edcf47]"
+//                     className="h-[28px] bg-[#FBFF26] px-4 text-[16px] text-[#2D3D4D] hover:bg-[#FBFF26]/95"
 //                   >
 //                     <Pencil className="mr-1.5 h-3.5 w-3.5" />
 //                     {isEditingFeatures ? "Done" : "Edit"}
@@ -840,7 +840,7 @@
 //                   <Button
 //                     type="button"
 //                     onClick={() => setIsEditingIncluded((prev) => !prev)}
-//                     className="h-[28px] bg-[#F5D64E] px-4 text-[16px] text-[#2D3D4D] hover:bg-[#edcf47]"
+//                     className="h-[28px] bg-[#FBFF26] px-4 text-[16px] text-[#2D3D4D] hover:bg-[#FBFF26]/95"
 //                   >
 //                     <Pencil className="mr-1.5 h-3.5 w-3.5" />
 //                     {isEditingIncluded ? "Done" : "Edit"}
@@ -951,7 +951,7 @@
 //                     <Button
 //                       type="button"
 //                       onClick={() => setIsEditingSteps((prev) => !prev)}
-//                       className="h-[28px] bg-[#F5D64E] px-4 text-[16px] text-[#2D3D4D] hover:bg-[#edcf47]"
+//                       className="h-[28px] bg-[#FBFF26] px-4 text-[16px] text-[#2D3D4D] hover:bg-[#FBFF26]/95"
 //                     >
 //                       <Pencil className="mr-1.5 h-3.5 w-3.5" />
 //                       {isEditingSteps ? "Done" : "Edit"}
@@ -1043,7 +1043,7 @@
 //                   type="button"
 //                   onClick={handleSubmit}
 //                   disabled={createProductMutation.isPending}
-//                   className="h-[46px] bg-[#F5D64E] text-[16px] text-[#2D3D4D] hover:bg-[#edcf47] disabled:cursor-not-allowed disabled:opacity-70"
+//                   className="h-[46px] bg-[#FBFF26] text-[16px] text-[#2D3D4D] hover:bg-[#FBFF26]/95 disabled:cursor-not-allowed disabled:opacity-70"
 //                 >
 //                   {createProductMutation.isPending ? "Saving..." : "Add"}
 //                 </Button>
@@ -1596,7 +1596,7 @@ export function AddNewBoilerModal({
                     <Button
                       type="button"
                       onClick={() => setIsEditingBadges((prev) => !prev)}
-                      className="h-[36px] rounded-[8px] bg-[#F5D64E] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#edcf47]"
+                      className="h-[36px] rounded-[8px] bg-[#FBFF26] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#FBFF26]/95"
                     >
                       <SquarePen className="mr-2 h-4 w-4" />
                       {isEditingBadges ? "Done" : "Edit"}
@@ -1720,7 +1720,7 @@ export function AddNewBoilerModal({
                   <Button
                     type="button"
                     onClick={() => setIsEditingFeatures((prev) => !prev)}
-                    className="h-[36px] rounded-[8px] bg-[#F5D64E] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#edcf47]"
+                    className="h-[36px] rounded-[8px] bg-[#FBFF26] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#FBFF26]/95"
                   >
                     <SquarePen className="mr-2 h-4 w-4" />
                     {isEditingFeatures ? "Done" : "Edit"}
@@ -1875,7 +1875,7 @@ export function AddNewBoilerModal({
                   <Button
                     type="button"
                     onClick={() => setIsEditingIncluded((prev) => !prev)}
-                    className="h-[36px] rounded-[8px] bg-[#F5D64E] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#edcf47]"
+                    className="h-[36px] rounded-[8px] bg-[#FBFF26] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#FBFF26]/95"
                   >
                     <SquarePen className="mr-2 h-4 w-4" />
                     {isEditingIncluded ? "Done" : "Edit"}
@@ -1928,7 +1928,7 @@ export function AddNewBoilerModal({
                   <Button
                     type="button"
                     onClick={() => setIsEditingAlsoUse((prev) => !prev)}
-                    className="h-[36px] rounded-[8px] bg-[#F5D64E] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#edcf47]"
+                    className="h-[36px] rounded-[8px] bg-[#FBFF26] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#FBFF26]/95"
                   >
                     <SquarePen className="mr-2 h-4 w-4" />
                     {isEditingAlsoUse ? "Done" : "Edit"}
@@ -2012,7 +2012,7 @@ export function AddNewBoilerModal({
                     <Button
                       type="button"
                       onClick={() => setIsEditingSteps((prev) => !prev)}
-                      className="h-[36px] rounded-[8px] bg-[#F5D64E] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#edcf47]"
+                      className="h-[36px] rounded-[8px] bg-[#FBFF26] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#FBFF26]/95"
                     >
                       <SquarePen className="mr-2 h-4 w-4" />
                       {isEditingSteps ? "Done" : "Edit"}
@@ -2084,7 +2084,7 @@ export function AddNewBoilerModal({
                   type="button"
                   onClick={handleSubmit}
                   disabled={createProductMutation.isPending}
-                  className="h-[48px] rounded-[10px] bg-[#F5D64E] text-[15px] font-medium text-[#2D3D4D] hover:bg-[#edcf47] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="h-[48px] rounded-[10px] bg-[#FBFF26] text-[15px] font-medium text-[#2D3D4D] hover:bg-[#FBFF26]/95 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {createProductMutation.isPending ? "Saving..." : "Add"}
                 </Button>

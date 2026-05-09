@@ -296,7 +296,7 @@ export function ExtrasSection() {
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={deleteExtraMutation.isPending}
-                className="h-[40px] rounded-[10px] bg-[#F5D64E] px-6 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#edcf47]"
+                className="h-[40px] rounded-[10px] bg-[#FBFF26] px-6 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#FBFF26]/95"
               >
                 {deleteExtraMutation.isPending ? "Deleting..." : "Delete"}
               </Button>

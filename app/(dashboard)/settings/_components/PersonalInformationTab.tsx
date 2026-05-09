@@ -201,7 +201,7 @@ export function PersonalInformationTab({
         <Button
           onClick={handleToggleEdit}
           disabled={updateProfileMutation.isPending}
-          className="h-[40px] w-full rounded-[8px] bg-[#F5D64E] px-6 text-[15px] font-semibold text-[#334155] hover:bg-[#efcf42] sm:w-auto"
+          className="h-[40px] w-full rounded-[8px] bg-[#FBFF26] px-6 text-[15px] font-semibold text-[#334155] hover:bg-[#efcf42] sm:w-auto"
         >
           <Pencil className="mr-2 h-4 w-4" />
           {updateProfileMutation.isPending

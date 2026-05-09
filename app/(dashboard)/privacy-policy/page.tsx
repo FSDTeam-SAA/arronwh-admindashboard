@@ -149,7 +149,7 @@ const PolicyPage = () => {
         <button
           type="submit"
           disabled={mutation.isPending}
-          className="px-8 py-3 bg-[#FFDE59] text-black rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition"
+          className="px-8 py-3 bg-[#FBFF26] text-black rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
           {mutation.isPending ? 'Saving...' : 'Update Policy'}
         </button>

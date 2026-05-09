@@ -233,7 +233,7 @@ export default function FAQManagementPage() {
 
             <Button
               onClick={() => setOpenAddModal(true)}
-              className="h-[44px] rounded-[6px] bg-[#F5D64E] px-5 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#edcf47]"
+              className="h-[44px] rounded-[6px] bg-[#FBFF26] px-5 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#FBFF26]/95"
             >
               <Plus className="mr-2 h-4 w-4" />
               Add New Management
@@ -375,7 +375,7 @@ export default function FAQManagementPage() {
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={deleteFaqMutation.isPending}
-                className="h-[40px] rounded-[10px] bg-[#F5D64E] px-6 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#edcf47] disabled:cursor-not-allowed disabled:opacity-70"
+                className="h-[40px] rounded-[10px] bg-[#FBFF26] px-6 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#FBFF26]/95 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {deleteFaqMutation.isPending ? "Deleting..." : "Delete"}
               </Button>

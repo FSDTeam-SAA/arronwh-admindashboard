@@ -675,7 +675,7 @@ export function EditBoilerModal({
                     <Button
                       type="button"
                       onClick={() => setIsEditingBadges((prev) => !prev)}
-                      className="h-[36px] rounded-[8px] bg-[#F5D64E] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#edcf47]"
+                      className="h-[36px] rounded-[8px] bg-[#FBFF26] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#FBFF26]/95"
                     >
                       <SquarePen className="mr-2 h-4 w-4" />
                       {isEditingBadges ? "Done" : "Edit"}
@@ -798,7 +798,7 @@ export function EditBoilerModal({
                   <Button
                     type="button"
                     onClick={() => setIsEditingFeatures((prev) => !prev)}
-                    className="h-[36px] rounded-[8px] bg-[#F5D64E] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#edcf47]"
+                    className="h-[36px] rounded-[8px] bg-[#FBFF26] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#FBFF26]/95"
                   >
                     <SquarePen className="mr-2 h-4 w-4" />
                     {isEditingFeatures ? "Done" : "Edit"}
@@ -956,7 +956,7 @@ export function EditBoilerModal({
                   <Button
                     type="button"
                     onClick={() => setIsEditingIncluded((prev) => !prev)}
-                    className="h-[36px] rounded-[8px] bg-[#F5D64E] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#edcf47]"
+                    className="h-[36px] rounded-[8px] bg-[#FBFF26] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#FBFF26]/95"
                   >
                     <SquarePen className="mr-2 h-4 w-4" />
                     {isEditingIncluded ? "Done" : "Edit"}
@@ -1008,7 +1008,7 @@ export function EditBoilerModal({
                   <Button
                     type="button"
                     onClick={() => setIsEditingAlsoUse((prev) => !prev)}
-                    className="h-[36px] rounded-[8px] bg-[#F5D64E] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#edcf47]"
+                    className="h-[36px] rounded-[8px] bg-[#FBFF26] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#FBFF26]/95"
                   >
                     <SquarePen className="mr-2 h-4 w-4" />
                     {isEditingAlsoUse ? "Done" : "Edit"}
@@ -1093,7 +1093,7 @@ export function EditBoilerModal({
                     <Button
                       type="button"
                       onClick={() => setIsEditingSteps((prev) => !prev)}
-                      className="h-[36px] rounded-[8px] bg-[#F5D64E] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#edcf47]"
+                      className="h-[36px] rounded-[8px] bg-[#FBFF26] px-4 text-[14px] font-medium text-[#2D3D4D] hover:bg-[#FBFF26]/95"
                     >
                       <SquarePen className="mr-2 h-4 w-4" />
                       {isEditingSteps ? "Done" : "Edit"}
@@ -1167,7 +1167,7 @@ export function EditBoilerModal({
                   type="button"
                   onClick={handleSubmit}
                   disabled={updateProductMutation.isPending}
-                  className="h-[48px] rounded-[10px] bg-[#F5D64E] text-[15px] font-medium text-[#2D3D4D] hover:bg-[#edcf47] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="h-[48px] rounded-[10px] bg-[#FBFF26] text-[15px] font-medium text-[#2D3D4D] hover:bg-[#FBFF26]/95 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {updateProductMutation.isPending ? "Saving..." : "Update"}
                 </Button>
