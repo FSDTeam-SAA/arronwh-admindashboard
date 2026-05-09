@@ -55,7 +55,7 @@ export function CustomPagination({
               className={cn(
                 "flex h-[40px] min-w-[40px] items-center justify-center rounded-[4px] border px-2 text-[12px] font-medium transition",
                 currentPage === 1
-                  ? "border-[#F5D64E] bg-[#F5D64E] text-white"
+                  ? "border-[#F5D64E] bg-[#FBFF26] text-white"
                   : "border-[#CBD5E1] bg-white text-[#475569] hover:bg-[#F8FAFC]"
               )}
             >

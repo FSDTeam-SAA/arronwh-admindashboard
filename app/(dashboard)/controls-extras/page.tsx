@@ -55,7 +55,7 @@ export default function ControlsExtrasManagementPage() {
                 className={cn(
                   "h-[38px] min-w-[104px] rounded-[8px] px-5 text-[15px] font-medium transition",
                   activeTab === "controllers"
-                    ? "bg-[#F5D64E] text-[#2D3D4D]"
+                    ? "bg-[#FBFF26] text-[#2D3D4D]"
                     : "bg-white text-[#2D3D4D]"
                 )}
               >
@@ -68,7 +68,7 @@ export default function ControlsExtrasManagementPage() {
                 className={cn(
                   "h-[38px] min-w-[80px] rounded-[8px] px-5 text-[15px] font-medium transition",
                   activeTab === "extras"
-                    ? "bg-[#F5D64E] text-[#2D3D4D]"
+                    ? "bg-[#FBFF26] text-[#2D3D4D]"
                     : "bg-white text-[#2D3D4D]"
                 )}
               >
@@ -82,7 +82,7 @@ export default function ControlsExtrasManagementPage() {
                   ? setOpenAddControllerModal(true)
                   : setOpenAddExtraModal(true)
               }
-              className="h-[44px] rounded-[8px] bg-[#F5D64E] px-6 text-[16px] font-medium text-[#2D3D4D] hover:bg-[#edcf47]"
+              className="h-[44px] rounded-[8px] bg-[#FBFF26] px-6 text-[16px] font-medium text-[#2D3D4D] hover:bg-[#FBFF26]/95"
             >
               <span className="mr-2 text-[18px]">+</span>
               {buttonLabel}

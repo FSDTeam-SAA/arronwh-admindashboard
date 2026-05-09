@@ -157,7 +157,7 @@ export function ChangePasswordTab() {
           <Button
             onClick={() => changePasswordMutation.mutate()}
             disabled={changePasswordMutation.isPending}
-            className="h-[42px] rounded-[8px] bg-[#F5D64E] text-[15px] font-semibold text-[#334155] hover:bg-[#efcf42] disabled:cursor-not-allowed disabled:opacity-70"
+            className="h-[42px] rounded-[8px] bg-[#FBFF26] text-[15px] font-semibold text-[#334155] hover:bg-[#efcf42] disabled:cursor-not-allowed disabled:opacity-70"
           >
             {changePasswordMutation.isPending ? "Saving..." : "Save Change"}
           </Button>

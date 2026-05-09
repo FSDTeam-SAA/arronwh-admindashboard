@@ -436,7 +436,7 @@ export default function QuoteGeneratedPage() {
             </div>
             <div>
               <Link href="/quotes/generate-quote">
-              <Button className="bg-[#FFDE59] hover:bg-[#FFC72D] text-[#2D3D4D] text-lg px-5 h-[48px]">
+              <Button className="bg-[#FBFF26] hover:bg-[#FBFF26]/95 text-[#2D3D4D] text-lg px-5 h-[48px]">
                 Generate Quote
               </Button>
               </Link>
@@ -612,7 +612,7 @@ export default function QuoteGeneratedPage() {
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={deleteQuoteMutation.isPending}
-                className="h-[40px] rounded-[10px] bg-[#F5D64E] px-6 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#edcf47]"
+                className="h-[40px] rounded-[10px] bg-[#FBFF26] px-6 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#FBFF26]/95"
               >
                 {deleteQuoteMutation.isPending ? "Deleting..." : "Delete"}
               </Button>

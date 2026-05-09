@@ -291,7 +291,7 @@ export function AddControllerModal({
                     <Button
                       type="button"
                       onClick={() => setIsEditingBadges((prev) => !prev)}
-                      className="h-[32px] rounded-[8px] bg-[#F5D64E] px-4 text-[12px] font-semibold text-[#2D3D4D] hover:bg-[#edcf47]"
+                      className="h-[32px] rounded-[8px] bg-[#FBFF26] px-4 text-[12px] font-semibold text-[#2D3D4D] hover:bg-[#FBFF26]/95"
                     >
                       {isEditingBadges ? "Done" : "Edit"}
                     </Button>
@@ -461,7 +461,7 @@ export function AddControllerModal({
                   type="button"
                   onClick={handleSubmit}
                   disabled={createControllerMutation.isPending}
-                  className="h-[46px] rounded-[10px] bg-[#F5D64E] text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#edcf47] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="h-[46px] rounded-[10px] bg-[#FBFF26] text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#FBFF26]/95 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {createControllerMutation.isPending ? "Saving..." : "Add"}
                 </Button>

@@ -160,7 +160,7 @@ export default function SettingsPage() {
             className={cn(
               "h-[50px] rounded-[8px] text-[18px] font-semibold transition",
               activeTab === "personal"
-                ? "bg-[#FFDE59] text-white"
+                ? "bg-[#FBFF26] text-white"
                 : "bg-white text-[#334155]"
             )}
           >
@@ -173,7 +173,7 @@ export default function SettingsPage() {
             className={cn(
               "h-[50px] rounded-[8px] text-[15px] font-semibold transition",
               activeTab === "password"
-                ? "bg-[#F5D64E] text-white"
+                ? "bg-[#FBFF26] text-white"
                 : "bg-white text-[#334155]"
             )}
           >
@@ -225,7 +225,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={handleEditClick}
                   disabled={updateProfileMutation.isPending}
-                  className="h-[40px] rounded-[8px] bg-[#FFDE59] px-5 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#edcf47] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="h-[40px] rounded-[8px] bg-[#FBFF26] px-5 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#FBFF26]/95 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {updateProfileMutation.isPending ? "Uploading..." : "Edit"}
                 </Button>

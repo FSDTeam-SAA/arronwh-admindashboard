@@ -502,7 +502,7 @@ const PartnerForm = () => {
         <div className="flex gap-4">
           <Button
             type="submit"
-            className="px-6 h-[48px] bg-[#FFDE59] text-lg text-[#2D3D4D] rounded-lg hover:bg-[#FFDE59]/90 transition-colors"
+            className="px-6 h-[48px] bg-[#FBFF26] text-lg text-[#2D3D4D] rounded-lg hover:bg-[#FBFF26]/95 transition-colors"
             disabled={mutation.isPending}
           >
             {mutation.isPending 
@@ -550,7 +550,7 @@ const PartnerForm = () => {
                 type="button"
                 onClick={handleConfirmAction}
                 disabled={deleteMutation.isPending || removeImageMutation.isPending}
-                className="h-[40px] rounded-[10px] bg-[#F5D64E] px-6 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#edcf47] disabled:cursor-not-allowed disabled:opacity-70"
+                className="h-[40px] rounded-[10px] bg-[#FBFF26] px-6 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#FBFF26]/95 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {deleteMutation.isPending
                   ? "Deleting..."

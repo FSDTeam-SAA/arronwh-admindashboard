@@ -117,7 +117,7 @@ function BookingForBadge({
 }) {
   const styles =
     value === "Survey"
-      ? "bg-[#F5D64E] text-white"
+      ? "bg-[#FBFF26] text-white"
       : "bg-[#00A56F] text-white";
 
   return (
@@ -636,7 +636,7 @@ export default function BookingManagementPage() {
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={deleteBookingMutation.isPending}
-                className="h-[40px] rounded-[10px] bg-[#F5D64E] px-6 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#edcf47]"
+                className="h-[40px] rounded-[10px] bg-[#FBFF26] px-6 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#FBFF26]/95"
               >
                 {deleteBookingMutation.isPending ? "Deleting..." : "Delete"}
               </Button>

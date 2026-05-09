@@ -484,7 +484,7 @@ export function BookingDetailsModal({
 
                 <div className="mb-4 flex flex-wrap items-center gap-3 text-[12px] text-[#4E5D6C]">
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="h-3 w-3 rounded-sm bg-[#F5D64E]" />
+                    <span className="h-3 w-3 rounded-sm bg-[#FBFF26]" />
                     Survey date
                   </span>
                   <span className="inline-flex items-center gap-1.5">
@@ -532,7 +532,7 @@ export function BookingDetailsModal({
                       if (hasInstallBookings) {
                         dayClass = "bg-[#00A56F] text-white";
                       } else if (hasSurveyBookings) {
-                        dayClass = "bg-[#F5D64E] text-[#2D3D4D]";
+                        dayClass = "bg-[#FBFF26] text-[#2D3D4D]";
                       }
 
                       const selectedDateClass =
@@ -711,7 +711,7 @@ export function BookingDetailsModal({
               </div>
 
               <div className="mt-5 space-y-3">
-                <Button className="h-[48px] w-full rounded-[4px] bg-[#FFDE59] text-[16px] font-semibold text-[#2D3D4D] hover:bg-[#edcf47]">
+                <Button className="h-[48px] w-full rounded-[4px] bg-[#FFDE59] text-[16px] font-semibold text-[#2D3D4D] hover:bg-[#FBFF26]/95">
                   Email quote via email
                 </Button>
 

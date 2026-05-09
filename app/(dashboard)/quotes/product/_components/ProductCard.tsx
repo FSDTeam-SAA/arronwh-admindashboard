@@ -59,7 +59,7 @@ function Tag({ label }: { label: string }) {
     <div
       className={cn(
         "inline-flex h-[38px] items-center justify-center rounded-full px-3 text-[11px] sm:text-[18px] font-medium",
-        isFinance ? "bg-[#6EC1F3] text-[#2D3D4D]" : "bg-[#F5D64E] text-[#2D3D4D]"
+        isFinance ? "bg-[#6EC1F3] text-[#2D3D4D]" : "bg-[#FBFF26] text-[#2D3D4D]"
       )}
     >
       {normalizedLabel}

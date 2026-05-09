@@ -158,7 +158,7 @@ export function EditFaqModal({
                   type="button"
                   onClick={handleSubmit}
                   disabled={updateFaqMutation.isPending}
-                  className="h-[48px] rounded-[8px] bg-[#F5D64E] text-[14px] font-medium text-[#2D3D4D] hover:bg-[#edcf47] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="h-[48px] rounded-[8px] bg-[#FBFF26] text-[14px] font-medium text-[#2D3D4D] hover:bg-[#FBFF26]/95 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {updateFaqMutation.isPending ? "Saving..." : "Save"}
                 </Button>

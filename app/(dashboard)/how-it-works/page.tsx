@@ -244,9 +244,16 @@ export default function HowItWorksPage() {
   };
 
   const saveHeaderMutation = useMutation({
-    mutationFn: async (payload: HeaderFormState) => {
-      const response = await fetch(headerEndpoint, {
-        method: 'POST',
+    mutationFn: async ({
+      payload,
+      headerId,
+    }: {
+      payload: HeaderFormState;
+      headerId: string | null;
+    }) => {
+      const requestUrl = headerId ? `${headerEndpoint}/${headerId}` : headerEndpoint;
+      const response = await fetch(requestUrl, {
+        method: headerId ? 'PATCH' : 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -261,8 +268,12 @@ export default function HowItWorksPage() {
 
       return result;
     },
-    onSuccess: () => {
-      toast.success('Header saved successfully.');
+    onSuccess: (_result, variables) => {
+      toast.success(
+        variables.headerId
+          ? 'Header updated successfully.'
+          : 'Header created successfully.'
+      );
       queryClient.invalidateQueries({ queryKey: ['yoloheat-header', token] });
     },
     onError: (error) => {
@@ -379,6 +390,7 @@ export default function HowItWorksPage() {
 
   const handleHeaderSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const currentHeaderId = headerQuery.data?.[0]?._id ?? null;
     const payload = {
       headerTitle: headerForm.headerTitle.trim(),
       headerDiscription: headerForm.headerDiscription.trim(),
@@ -389,7 +401,10 @@ export default function HowItWorksPage() {
       return;
     }
 
-    saveHeaderMutation.mutate(payload);
+    saveHeaderMutation.mutate({
+      payload,
+      headerId: currentHeaderId,
+    });
   };
 
   const handleStepSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -542,9 +557,13 @@ export default function HowItWorksPage() {
               <Button
                 type="submit"
                 disabled={saveHeaderMutation.isPending}
-                className="h-11 bg-[#F5D64E] px-6 font-semibold text-[#2D3D4D] hover:bg-[#edcf47]"
+                className="h-11 bg-[#FBFF26] px-6 font-semibold text-[#2D3D4D] hover:bg-[#FBFF26]/95 transition-colors"
               >
-                {saveHeaderMutation.isPending ? 'Saving...' : 'Save Header'}
+                {saveHeaderMutation.isPending
+                  ? 'Saving...'
+                  : headerQuery.data?.[0]?._id
+                    ? 'Edit Header'
+                    : 'Create Header'}
               </Button>
             </div>
           </form>
@@ -639,7 +658,7 @@ export default function HowItWorksPage() {
               <Button
                 type="submit"
                 disabled={saveStepMutation.isPending}
-                className="h-11 bg-[#F5D64E] px-6 font-normal text-xl text-[#2D3D4D] hover:bg-[#edcf47]"
+                className="h-11 bg-[#FBFF26] px-6 font-normal text-xl text-[#2D3D4D] hover:bg-[#FBFF26]/95"
               >
                 {saveStepMutation.isPending
                   ? 'Saving...'
@@ -767,7 +786,7 @@ export default function HowItWorksPage() {
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={deleteStepMutation.isPending}
-                className="h-[40px] rounded-[10px] bg-[#F5D64E] px-6 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#edcf47] disabled:cursor-not-allowed disabled:opacity-70"
+                className="h-[40px] rounded-[10px] bg-[#FBFF26] px-6 text-[14px] font-semibold text-[#2D3D4D] hover:bg-[#] disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {deleteStepMutation.isPending ? 'Deleting...' : 'Delete'}
               </Button>
