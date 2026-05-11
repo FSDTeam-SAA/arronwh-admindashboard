@@ -38,3 +38,21 @@
 .boiler-quill-editor .ql-editor {
   min-height: 180px;
 }
+
+
+/* Hide scrollbar but keep scrolling enabled */
+
+/* Chrome, Safari, Edge */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Firefox */
+.hide-scrollbar {
+  scrollbar-width: none;
+}
+
+/* IE & old Edge */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+}
