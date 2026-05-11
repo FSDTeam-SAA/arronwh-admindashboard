@@ -11,7 +11,7 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart';
 
-type EarningType = 'revenue' | 'booking';
+type EarningType = 'revenue' | 'bookings';
 
 type EarningOverviewApiItem = {
   month: string;
@@ -201,9 +201,9 @@ export function EarningChart() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('booking')}
+              onClick={() => setActiveTab('bookings')}
               className={`rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors ${
-                activeTab === 'booking'
+                activeTab === 'bookings'
                   ? 'bg-[#EEF2F6] text-[#2D3D4D]'
                   : 'bg-white text-[#64748B] hover:bg-[#F8FAFC]'
               }`}
