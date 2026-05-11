@@ -373,6 +373,7 @@ export default function BoilerQuote() {
         quoteId,
         pageUrl: getBrowserPageUrl(),
         price: payTodayTotal,
+        useInvoiceEmailEndpoint: true,
       });
       toast.success(result.message || "Quote email sent successfully.");
     } catch (error) {

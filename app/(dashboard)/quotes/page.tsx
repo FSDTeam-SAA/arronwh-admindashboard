@@ -105,7 +105,6 @@ type QuoteItem = {
   status: QuoteStatus;
 };
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 function QuoteSkeletonRow() {
   return (
@@ -225,10 +224,11 @@ async function fetchQuotes(
   return json;
 }
 
+const pageSize = 10;
+
 export default function QuoteGeneratedPage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const [openDetails, setOpenDetails] = useState(false);
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
   const [openDelete, setOpenDelete] = useState(false);
@@ -242,7 +242,7 @@ export default function QuoteGeneratedPage() {
     QuotesApiResponse,
     Error
   >({
-    queryKey: ["quotes", page, pageSize],
+    queryKey: ["quotes", page],
     queryFn: () => fetchQuotes(page, pageSize),
     staleTime: 1000 * 60 * 2,
     placeholderData: (previousData) => previousData,
@@ -561,13 +561,7 @@ export default function QuoteGeneratedPage() {
               <CustomPagination
                 currentPage={page}
                 totalPages={totalPages}
-                pageSize={pageSize}
-                pageSizeOptions={PAGE_SIZE_OPTIONS}
                 onPageChange={setPage}
-                onPageSizeChange={(size) => {
-                  setPageSize(size);
-                  setPage(1);
-                }}
               />
             </div>
           </div>

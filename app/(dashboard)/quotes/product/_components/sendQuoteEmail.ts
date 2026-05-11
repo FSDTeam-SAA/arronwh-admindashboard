@@ -8,16 +8,21 @@ type SendQuoteEmailInput = {
   quoteId: string;
   pageUrl: string;
   price: number;
+  useInvoiceEmailEndpoint?: boolean;
 };
 
-function resolveQuoteEndpoint(): string {
-  if (process.env.NEXT_PUBLIC_API_BASE_URL) {
-    return `${process.env.NEXT_PUBLIC_API_BASE_URL}/quote`;
+function resolveQuoteEndpoint(useInvoiceEmailEndpoint: boolean): string {
+  const apiBase = (
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    ""
+  ).replace(/\/+$/, "");
+
+  if (useInvoiceEmailEndpoint) {
+    return apiBase ? `${apiBase}/subscriber/quote` : "/subscriber/quote";
   }
-  if (process.env.NEXT_PUBLIC_BACKEND_URL) {
-    return `${process.env.NEXT_PUBLIC_BACKEND_URL}/quote`;
-  }
-  return "/quote";
+
+  return apiBase ? `${apiBase}/quote` : "/quote";
 }
 
 function normalizePrice(value: number): number {
@@ -40,9 +45,16 @@ export async function sendQuoteEmail({
   quoteId,
   pageUrl,
   price,
+  useInvoiceEmailEndpoint = false,
 }: SendQuoteEmailInput): Promise<EmailQuoteResponse> {
+  const endpoint = resolveQuoteEndpoint(useInvoiceEmailEndpoint);
+  const emailPath = useInvoiceEmailEndpoint ? "invoice/email" : "email";
+  const fallbackErrorMessage = useInvoiceEmailEndpoint
+    ? "Failed to send quote invoice email."
+    : "Failed to send quote email.";
+
   const response = await fetch(
-    `${resolveQuoteEndpoint()}/${encodeURIComponent(quoteId)}/email`,
+    `${endpoint}/${encodeURIComponent(quoteId)}/${emailPath}`,
     {
       method: "POST",
       headers: {
@@ -61,7 +73,7 @@ export async function sendQuoteEmail({
   const hasExplicitFailure = result?.success === false || result?.status === false;
 
   if (!response.ok || hasExplicitFailure) {
-    throw new Error(result?.message || "Failed to send quote email.");
+    throw new Error(result?.message || fallbackErrorMessage);
   }
 
   return result ?? {};

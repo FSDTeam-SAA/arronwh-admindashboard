@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useMutation } from "@tanstack/react-query";
-import { BadgePercent, Mail } from "lucide-react";
+import { BadgePercent,  } from "lucide-react";
 import { toast } from "sonner";
 
 
@@ -13,7 +13,7 @@ import { useExtras } from "./_components/useExtras";
 import { useProductById } from "../controller/_components/useProductById";
 import { useQuoteById } from "../controller/_components/useQuoteById";
 import { getPrimaryQuotePriceAdjustmentItem, getQuotePriceAdjustmentTotal } from "../product/_components/getQuotePriceAdjustmentItems";
-import { getBrowserPageUrl, sendQuoteEmail } from "../product/_components/sendQuoteEmail";
+// import {  sendQuoteEmail } from "../product/_components/sendQuoteEmail";
 
 type UpdateExtraResponse = {
   success?: boolean;
@@ -84,10 +84,10 @@ function ExtrasPageContent() {
     mutationKey: ["update-quote-extra"],
     mutationFn: updateQuoteExtra,
   });
-  const { mutateAsync: mutateEmailQuote, isPending: isEmailingQuote } = useMutation({
-    mutationKey: ["email-quote"],
-    mutationFn: sendQuoteEmail,
-  });
+  // const { mutateAsync: mutateEmailQuote } = useMutation({
+  //   mutationKey: ["email-quote"],
+  //   mutationFn: sendQuoteEmail,
+  // });
 
   const { data: extras = [], isLoading: extrasLoading } = useExtras();
   const { data: quote, isLoading: quoteLoading } = useQuoteById(quoteId);
@@ -190,23 +190,23 @@ function ExtrasPageContent() {
     }
   };
 
-  const handleEmailQuote = async () => {
-    if (!quoteId) {
-      toast.error("Quote ID not found. Please start again.");
-      return;
-    }
+  // const handleEmailQuote = async () => {
+  //   if (!quoteId) {
+  //     toast.error("Quote ID not found. Please start again.");
+  //     return;
+  //   }
 
-    try {
-      const result = await mutateEmailQuote({
-        quoteId,
-        pageUrl: getBrowserPageUrl(),
-        price: payTodayTotal,
-      });
-      toast.success(result.message || "Quote email sent successfully.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to send quote email.");
-    }
-  };
+  //   try {
+  //     const result = await mutateEmailQuote({
+  //       quoteId,
+  //       pageUrl: getBrowserPageUrl(),
+  //       price: payTodayTotal,
+  //     });
+  //     toast.success(result.message || "Quote email sent successfully.");
+  //   } catch (error) {
+  //     toast.error(error instanceof Error ? error.message : "Failed to send quote email.");
+  //   }
+  // };
 
   const quoteItems: QuoteItem[] = product
     ? [
@@ -388,7 +388,7 @@ function ExtrasPageContent() {
                 {isUpdatingExtra ? "Saving..." : "Next Checkout"}
               </Button>
 
-              <Button
+              {/* <Button
                 variant="outline"
                 disabled={isEmailingQuote}
                 onClick={handleEmailQuote}
@@ -396,7 +396,7 @@ function ExtrasPageContent() {
               >
                 {isEmailingQuote ? "Sending..." : "Email My quote"}
                 <Mail className="ml-2 h-4 w-4" />
-              </Button>
+              </Button> */}
 
               {/* Quote items list */}
               <div className="mt-5">
