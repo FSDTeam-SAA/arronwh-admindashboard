@@ -5,7 +5,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useMutation } from "@tanstack/react-query";
-import { BadgePercent, CheckCircle, Mail } from "lucide-react";
+import { BadgePercent, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 
 
@@ -17,7 +17,6 @@ import { useControllers } from "./_components/useControllers";
 import { useProductById } from "./_components/useProductById";
 import { useQuoteById } from "./_components/useQuoteById";
 import { getPrimaryQuotePriceAdjustmentItem, getQuotePriceAdjustmentTotal } from "../product/_components/getQuotePriceAdjustmentItems";
-import { getBrowserPageUrl, sendQuoteEmail } from "../product/_components/sendQuoteEmail";
 
 function formatControllerPrice(price: number): string {
   if (price <= 0) return "Included";
@@ -98,10 +97,10 @@ function ChooseControlsPage() {
     mutationKey: ["update-quote-controller"],
     mutationFn: updateQuoteController,
   });
-  const { mutateAsync: mutateEmailQuote, isPending: isEmailingQuote } = useMutation({
-    mutationKey: ["email-quote"],
-    mutationFn: sendQuoteEmail,
-  });
+  // const { mutateAsync: mutateEmailQuote} = useMutation({
+  //   mutationKey: ["email-quote"],
+  //   mutationFn: sendQuoteEmail,
+  // });
 
   const [selectedControllerId, setSelectedControllerId] = useState<string | null>(null)
 
@@ -187,23 +186,23 @@ function ChooseControlsPage() {
     }
   };
 
-  const handleEmailQuote = async () => {
-    if (!quoteId) {
-      toast.error("Quote ID not found. Please start again.");
-      return;
-    }
+  // const handleEmailQuote = async () => {
+  //   if (!quoteId) {
+  //     toast.error("Quote ID not found. Please start again.");
+  //     return;
+  //   }
 
-    try {
-      const result = await mutateEmailQuote({
-        quoteId,
-        pageUrl: getBrowserPageUrl(),
-        price: payTodayTotal,
-      });
-      toast.success(result.message || "Quote email sent successfully.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to send quote email.");
-    }
-  };
+  //   try {
+  //     const result = await mutateEmailQuote({
+  //       quoteId,
+  //       pageUrl: getBrowserPageUrl(),
+  //       price: payTodayTotal,
+  //     });
+  //     toast.success(result.message || "Quote email sent successfully.");
+  //   } catch (error) {
+  //     toast.error(error instanceof Error ? error.message : "Failed to send quote email.");
+  //   }
+  // };
 
   return (
     <div>
@@ -347,7 +346,7 @@ function ChooseControlsPage() {
                   {isUpdatingController ? "Saving..." : "Next Extras"}
                 </Button>
 
-                <Button
+                {/* <Button
                   variant="outline"
                   disabled={isEmailingQuote}
                   onClick={handleEmailQuote}
@@ -355,7 +354,7 @@ function ChooseControlsPage() {
                 >
                   {isEmailingQuote ? "Sending..." : "Email My quote"}
                   <Mail className="ml-2 h-4 w-4" />
-                </Button>
+                </Button> */}
 
                 {/* Quote items list */}
                 <div className="mt-5">

@@ -115,10 +115,11 @@ function BookingForBadge({
   onChange: (value: BookingForUi) => void;
   disabled?: boolean;
 }) {
-  const styles =
-    value === "Survey"
-      ? "bg-[#FBFF26] text-white"
-      : "bg-[#00A56F] text-white";
+  const isSurvey = value === "Survey";
+
+  const styles = isSurvey
+    ? "bg-[#FBFF26] text-black"
+    : "bg-[#00A56F] text-white";
 
   return (
     <div className="relative w-[190px]">
@@ -135,7 +136,13 @@ function BookingForBadge({
         <option value="Installation">Installation</option>
         <option value="Survey">Survey</option>
       </select>
-      <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white" />
+
+      <ChevronDown
+        className={cn(
+          "pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2",
+          isSurvey ? "text-black" : "text-white"
+        )}
+      />
     </div>
   );
 }
@@ -585,12 +592,9 @@ export default function BookingManagementPage() {
               <CustomPagination
                 currentPage={page}
                 totalPages={totalPages}
-                pageSize={pageSize}
-                pageSizeOptions={[10, 25, 50]}
-                onPageChange={setPage}
-                onPageSizeChange={(size) => {
+                onPageChange={(size) => {
                   setPageSize(size);
-                  setPage(1);
+                  setPage(10);
                 }}
               />
             </div>
