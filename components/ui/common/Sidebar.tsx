@@ -17,6 +17,8 @@ import {
   LogOut,
   ReceiptText,
   HandFist,
+  Podcast,
+  Handshake,
 } from "lucide-react";
 import { useState } from "react";
 import Image from "next/image";
@@ -25,17 +27,17 @@ import { signOut } from "next-auth/react";
 const navigation = [
   { name: "Dashboard Overview", href: "/", icon: LayoutDashboard },
   { name: "Hero section", href: "/hero", icon: InspectionPanel },
-  { name: "Our Partners", href: "/our-partners", icon: FileText },
+  { name: "Our Partners", href: "/our-partners", icon: Handshake },
   { name: "How it works", href: "/how-it-works", icon: FileText },
   { name: "Promise Section", href: "/promise", icon: HandFist },
   { name: "Privacy Policy", href: "/privacy-policy", icon: ReceiptText },
-  { name: "Terms & Conditions", href: "/terms-conditions", icon: FileText },
+  { name: "Terms & Conditions", href: "/terms-conditions", icon: Handshake },
   { name: "Quote Management", href: "/quotes", icon: FileText },
   { name: "Booking Management", href: "/bookings", icon: CalendarCheck },
   { name: "Products Management", href: "/products", icon: Wrench },
-  // { name: "Quiz Management", href: "/all-users", icon: ListChecks },
   { name: "Controls & Extras Management", href: "/controls-extras", icon: Package },
   { name: "FAQ Management", href: "/faq", icon: HelpCircle },
+  { name: "Subscriber Management", href: "/subscribers", icon: Podcast },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -88,7 +90,7 @@ export function Sidebar() {
       {/* Sidebar */}
       <div
         className={cn(
-          "flex h-screen sticky bottom-0 top-0 flex-col bg-white z-50 transition-transform duration-300 overflow-auto border-r border-slate-200",
+          "flex h-screen  sticky bottom-0 top-0 flex-col bg-white z-50 transition-transform duration-300 overflow-auto border-r border-slate-200",
           "fixed lg:static",
           "w-[240px] sm:w-[250px] lg:w-[300px]",
           isMobileMenuOpen
@@ -122,7 +124,7 @@ export function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 flex flex-col gap-1 px-4 pb-6 overflow-y-auto">
+        <nav className="flex-1 hide-scrollbar flex flex-col gap-1 px-4 pb-6 overflow-y-auto">
           {navigation.map((item) => {
             const isActive =
               pathname === item.href ||
