@@ -19,26 +19,35 @@ import {
   HandFist,
   Podcast,
   Handshake,
+  ChevronDown,
+  ChevronRight,
+  Globe,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { signOut } from "next-auth/react";
 
-const navigation = [
+const topNavigation = [
   { name: "Dashboard Overview", href: "/", icon: LayoutDashboard },
+];
+
+const navigation = [
+  { name: "Quote Management", href: "/quotes", icon: FileText },
+  { name: "Booking Management", href: "/bookings", icon: CalendarCheck },
+  { name: "Products Management", href: "/products", icon: Wrench },
+  { name: "Controls & Extras Management", href: "/controls-extras", icon: Package },
+  { name: "Subscriber Management", href: "/subscribers", icon: Podcast },
+  { name: "Settings", href: "/settings", icon: Settings },
+];
+
+const websiteManagementItems = [
   { name: "Hero section", href: "/hero", icon: InspectionPanel },
   { name: "Our Partners", href: "/our-partners", icon: Handshake },
   { name: "How it works", href: "/how-it-works", icon: FileText },
   { name: "Promise Section", href: "/promise", icon: HandFist },
   { name: "Privacy Policy", href: "/privacy-policy", icon: ReceiptText },
   { name: "Terms & Conditions", href: "/terms-conditions", icon: Handshake },
-  { name: "Quote Management", href: "/quotes", icon: FileText },
-  { name: "Booking Management", href: "/bookings", icon: CalendarCheck },
-  { name: "Products Management", href: "/products", icon: Wrench },
-  { name: "Controls & Extras Management", href: "/controls-extras", icon: Package },
   { name: "FAQ Management", href: "/faq", icon: HelpCircle },
-  { name: "Subscriber Management", href: "/subscribers", icon: Podcast },
-  { name: "Settings", href: "/settings", icon: Settings },
 ];
 
 export function Sidebar() {
@@ -47,6 +56,19 @@ export function Sidebar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLogoutOpen, setIsLogoutOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isWebsiteManagementOpen, setIsWebsiteManagementOpen] = useState(false);
+
+  const isWebsiteManagementActive = websiteManagementItems.some(
+    (item) =>
+      pathname === item.href ||
+      (item.href !== "/" && pathname.startsWith(item.href)),
+  );
+
+  useEffect(() => {
+    if (isWebsiteManagementActive) {
+      setIsWebsiteManagementOpen(true);
+    }
+  }, [isWebsiteManagementActive]);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -125,6 +147,113 @@ export function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 hide-scrollbar flex flex-col gap-1 px-4 pb-6 overflow-y-auto">
+          {topNavigation.map((item) => {
+            const isActive =
+              pathname === item.href ||
+              (item.href !== "/" && pathname.startsWith(item.href));
+
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={cn(
+                  "flex w-full min-w-0 items-center justify-start gap-2 rounded-[4px] px-4 py-2 text-sm font-medium transition-all duration-200",
+                  isActive
+                    ? "bg-[#FBFF26] text-slate-900 shadow-[0_1px_0_rgba(0,0,0,0.04)]"
+                    : "text-slate-800 hover:bg-slate-100",
+                )}
+              >
+                <item.icon
+                  className={cn(
+                    "h-[28px] w-[18px] transition-colors duration-200 flex-shrink-0",
+                    isActive ? "text-slate-900" : "text-slate-700",
+                  )}
+                />
+                <span
+                  className={cn(
+                    "min-w-0 flex-1 truncate font-medium text-[16px] leading-[120%] transition-colors duration-200",
+                    isActive ? "text-slate-900" : "text-slate-800",
+                  )}
+                  title={item.name}
+                >
+                  {item.name}
+                </span>
+              </Link>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={() => setIsWebsiteManagementOpen((prev) => !prev)}
+            className={cn(
+              "flex w-full min-w-0 items-center justify-start gap-2 rounded-[4px] px-4 py-2 text-sm font-medium transition-all duration-200",
+              isWebsiteManagementActive
+                ? "bg-[#FBFF26] text-slate-900 shadow-[0_1px_0_rgba(0,0,0,0.04)]"
+                : "text-slate-800 hover:bg-slate-100",
+            )}
+          >
+            <Globe
+              className={cn(
+                "h-[28px] w-[18px] transition-colors duration-200 flex-shrink-0",
+                isWebsiteManagementActive ? "text-slate-900" : "text-slate-700",
+              )}
+            />
+            <span
+              className={cn(
+                "min-w-0 flex-1 truncate font-medium text-[16px] leading-[120%] text-left transition-colors duration-200",
+                isWebsiteManagementActive ? "text-slate-900" : "text-slate-800",
+              )}
+            >
+              Website Management
+            </span>
+            {isWebsiteManagementOpen ? (
+              <ChevronDown className="h-4 w-4 text-slate-700 flex-shrink-0" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-slate-700 flex-shrink-0" />
+            )}
+          </button>
+
+          {isWebsiteManagementOpen && (
+            <div className="ml-4 flex flex-col gap-1">
+              {websiteManagementItems.map((item) => {
+                const isActive =
+                  pathname === item.href ||
+                  (item.href !== "/" && pathname.startsWith(item.href));
+
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={cn(
+                      "flex w-full min-w-0 items-center justify-start gap-2 rounded-[4px] px-4 py-2 text-sm font-medium transition-all duration-200",
+                      isActive
+                        ? "bg-[#FBFF26] text-slate-900 shadow-[0_1px_0_rgba(0,0,0,0.04)]"
+                        : "text-slate-800 hover:bg-slate-100",
+                    )}
+                  >
+                    <item.icon
+                      className={cn(
+                        "h-[24px] w-[16px] transition-colors duration-200 flex-shrink-0",
+                        isActive ? "text-slate-900" : "text-slate-700",
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        "min-w-0 flex-1 truncate font-medium text-[15px] leading-[120%] transition-colors duration-200",
+                        isActive ? "text-slate-900" : "text-slate-800",
+                      )}
+                      title={item.name}
+                    >
+                      {item.name}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
           {navigation.map((item) => {
             const isActive =
               pathname === item.href ||
