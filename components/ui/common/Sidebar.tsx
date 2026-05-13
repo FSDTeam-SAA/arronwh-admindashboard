@@ -49,6 +49,9 @@ const websiteManagementItems = [
   { name: "Our Partners", href: "/our-partners", icon: Handshake },
   { name: "How it works", href: "/how-it-works", icon: FileText },
   { name: "Promise Section", href: "/promise", icon: HandFist },
+
+ { name: "About Hero section", href: "/about-hero", icon: InspectionPanel },
+
   { name: "Privacy Policy", href: "/privacy-policy", icon: ReceiptText },
   { name: "Terms & Conditions", href: "/terms-conditions", icon: Handshake },
   { name: "FAQ Management", href: "/faq", icon: HelpCircle },
