@@ -1,6 +1,7 @@
 import React from 'react'
+import AboutOurValuesContainer from './_components/about-our-values-container'
 
-const AboutOurValuesContainer = () => {
+const AboutOurValuesPage = () => {
   return (
     <div>
         <AboutOurValuesContainer/>
@@ -8,4 +9,4 @@ const AboutOurValuesContainer = () => {
   )
 }
 
-export default AboutOurValuesContainer
+export default AboutOurValuesPage
