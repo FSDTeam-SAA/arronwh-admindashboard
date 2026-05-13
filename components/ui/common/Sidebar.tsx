@@ -47,8 +47,12 @@ const crmManagementItems = [
 const websiteManagementItems = [
   { name: "Hero section", href: "/hero", icon: InspectionPanel },
   { name: "Our Partners", href: "/our-partners", icon: Handshake },
-  { name: "How it works", href: "/how-it-works", icon: FileText },
+  { name: "How it works", href: "/how-it-works", icon: FileText },  
   { name: "Promise Section", href: "/promise", icon: HandFist },
+
+ { name: "About Hero section", href: "/about-hero", icon: InspectionPanel },
+ { name: "About Our Values section", href: "/about-our-values", icon: FileText },
+
   { name: "Privacy Policy", href: "/privacy-policy", icon: ReceiptText },
   { name: "Terms & Conditions", href: "/terms-conditions", icon: Handshake },
   { name: "FAQ Management", href: "/faq", icon: HelpCircle },
