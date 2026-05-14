@@ -312,7 +312,7 @@ export default function FAQManagementPage() {
                             onClick={() => handleDeleteOpen(faq)}
                             className="flex h-8 w-8 items-center justify-center rounded-full text-[#F5D64E] transition hover:bg-[#FFF8DB]"
                           >
-                            <Trash2 className="h-4 w-4 text-[#FFDE59]" />
+                            <Trash2 className="h-4 w-4 text-red-500" />
                           </button>
                         </div>
                       </div>
