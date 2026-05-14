@@ -434,13 +434,7 @@ export default function QuoteGeneratedPage() {
               <span>Quote Management</span>
             </div>
             </div>
-            <div>
-              <Link href="/quotes/generate-quote">
-              <Button className="bg-[#FBFF26] hover:bg-[#FBFF26]/95 text-[#2D3D4D] text-lg px-5 h-[48px]">
-                Generate Quote
-              </Button>
-              </Link>
-            </div>
+          
           </div>
 
           <div className="rounded-[12px] border border-[#E5E7EB] bg-white p-3 shadow-[0_2px_10px_rgba(15,23,42,0.04)] sm:p-4">
