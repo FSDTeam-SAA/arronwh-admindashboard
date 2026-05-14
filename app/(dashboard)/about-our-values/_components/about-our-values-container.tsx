@@ -570,7 +570,7 @@ export default function AboutOurValuesContainer() {
                     src={previewImage}
                     alt={valueForm.title || 'Value preview'}
                     fill
-                    className="object-cover"
+                    className="object-contain"
                     sizes="(max-width: 768px) 100vw, 420px"
                   />
                 </div>
@@ -632,7 +632,7 @@ export default function AboutOurValuesContainer() {
                         src={item.image}
                         alt={item.title || 'Value image'}
                         fill
-                        className="object-cover transition group-hover:scale-[1.02]"
+                        className="object-contain transition group-hover:scale-[1.02]"
                         sizes="(max-width: 768px) 100vw, 320px"
                       />
                     ) : (
