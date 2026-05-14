@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +11,7 @@ import {
 import { Mail, Phone, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import { SendQuoteEmailModal } from "./SendQuoteEmailModal";
 
 type QuizAnswer = {
   question: string;
@@ -221,6 +223,8 @@ export function QuoteDetailsModal({
   onOpenChange,
   quoteId,
 }: QuoteDetailsModalProps) {
+  const [isSendEmailModalOpen, setIsSendEmailModalOpen] = useState(false);
+
   const { data, isLoading, isError, error, isFetching } = useQuery<
     QuoteDetailsApiResponse,
     Error
@@ -229,6 +233,12 @@ export function QuoteDetailsModal({
     queryFn: () => fetchQuoteById(quoteId as string),
     enabled: open && !!quoteId,
   });
+
+  useEffect(() => {
+    if (!open) {
+      setIsSendEmailModalOpen(false);
+    }
+  }, [open]);
 
   if (!quoteId) return null;
 
@@ -249,193 +259,204 @@ export function QuoteDetailsModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogPortal>
-        <DialogOverlay className="bg-[#2D3D4DCC]" />
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogPortal>
+          <DialogOverlay className="bg-[#2D3D4DCC]" />
 
-        <DialogContent className="max-h-[92vh] !w-[1400px] max-w-[96vw] sm:max-w-[96vw] gap-0 overflow-hidden rounded-[14px] border-none bg-white p-0 shadow-[0_10px_30px_rgba(15,23,42,0.14)]">
-          <div className="flex items-center justify-between border-b border-[#EEF2F5] px-5 py-4">
-            <DialogTitle className="text-[28px] font-semibold text-[#2D3D4D]">
-              Generated Quote Details
-            </DialogTitle>
-          </div>
-
-          {showSkeleton ? (
-            <QuoteDetailsSkeleton />
-          ) : isError || !quote ? (
-            <div className="flex h-64 items-center justify-center px-4 text-center text-red-600">
-              Failed to load quote details
-              {error?.message ? `: ${error.message}` : ""}
+          <DialogContent className="max-h-[92vh] !w-[1400px] max-w-[96vw] sm:max-w-[96vw] gap-0 overflow-hidden rounded-[14px] border-none bg-white p-0 shadow-[0_10px_30px_rgba(15,23,42,0.14)]">
+            <div className="flex items-center justify-between border-b border-[#EEF2F5] px-5 py-4">
+              <DialogTitle className="text-[28px] font-semibold text-[#2D3D4D]">
+                Generated Quote Details
+              </DialogTitle>
             </div>
-          ) : (
-            <div className="max-h-[calc(92vh-76px)] overflow-y-auto px-4 py-4 sm:px-5">
-              <div className="rounded-[8px] bg-[#F0F3F6] p-4">
-                <h3 className="mb-4 text-[28px] font-semibold text-[#2D3D4D]">
-                  Personal Details
-                </h3>
 
-                <div className="grid grid-cols-1 gap-3 text-[16px] text-[#2D3D4D] sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Name:</span>
-                    <span>{getFullName(quote.personalInfo)}</span>
-                  </div>
+            {showSkeleton ? (
+              <QuoteDetailsSkeleton />
+            ) : isError || !quote ? (
+              <div className="flex h-64 items-center justify-center px-4 text-center text-red-600">
+                Failed to load quote details
+                {error?.message ? `: ${error.message}` : ""}
+              </div>
+            ) : (
+              <div className="max-h-[calc(92vh-76px)] overflow-y-auto px-4 py-4 sm:px-5">
+                <div className="rounded-[8px] bg-[#F0F3F6] p-4">
+                  <h3 className="mb-4 text-[28px] font-semibold text-[#2D3D4D]">
+                    Personal Details
+                  </h3>
 
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-[#64748B]" />
-                    <span>{quote.personalInfo?.email || "N/A"}</span>
-                  </div>
+                  <div className="grid grid-cols-1 gap-3 text-[16px] text-[#2D3D4D] sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Name:</span>
+                      <span>{getFullName(quote.personalInfo)}</span>
+                    </div>
 
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-[#64748B]" />
-                    <span>{quote.personalInfo?.mobleNumber || "N/A"}</span>
-                  </div>
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-[#64748B]" />
+                      <span>{quote.personalInfo?.email || "N/A"}</span>
+                    </div>
 
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-[#64748B]" />
-                    <span>
-                      {quote.installAddress || quote.personalInfo?.postcode || "N/A"}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-[#64748B]" />
+                      <span>{quote.personalInfo?.mobleNumber || "N/A"}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-[#64748B]" />
+                      <span>
+                        {quote.installAddress || quote.personalInfo?.postcode || "N/A"}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-5">
-                <h3 className="mb-6 text-[28px] font-semibold text-[#2D3D4D]">
-                  Quiz Answers
-                </h3>
+                <div className="mt-5">
+                  <h3 className="mb-6 text-[28px] font-semibold text-[#2D3D4D]">
+                    Quiz Answers
+                  </h3>
 
-                {(quote.quizAnswers ?? []).length > 0 ? (
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {(quote.quizAnswers ?? []).map((item, index) => (
-                      <div
-                        key={`${item.question}-${index}`}
-                        className="rounded-[8px] bg-[#00A56F] px-3 py-2 text-white"
-                      >
-                        <p className="text-[14px] leading-[1.35] font-medium">
-                          {item.question}
-                        </p>
-                        <p className="mt-2 text-[18px] font-bold">{item.answer}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-[8px] bg-[#F4F7F9] px-4 py-6 text-center text-[14px] text-[#64748B]">
-                    No quiz answers found.
-                  </div>
-                )}
-              </div>
+                  {(quote.quizAnswers ?? []).length > 0 ? (
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {(quote.quizAnswers ?? []).map((item, index) => (
+                        <div
+                          key={`${item.question}-${index}`}
+                          className="rounded-[8px] bg-[#00A56F] px-3 py-2 text-white"
+                        >
+                          <p className="text-[14px] leading-[1.35] font-medium">
+                            {item.question}
+                          </p>
+                          <p className="mt-2 text-[18px] font-bold">{item.answer}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-[8px] bg-[#F4F7F9] px-4 py-6 text-center text-[14px] text-[#64748B]">
+                      No quiz answers found.
+                    </div>
+                  )}
+                </div>
 
-              <div className="mt-5">
-                <h3 className="mb-6 text-[28px] font-semibold text-[#2D3D4D]">
-                  Option chosen
-                </h3>
+                <div className="mt-5">
+                  <h3 className="mb-6 text-[28px] font-semibold text-[#2D3D4D]">
+                    Option chosen
+                  </h3>
 
-                <div className="rounded-[8px] border-b border-[#2D3D4D] bg-white">
-                  <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
-                    <p className="text-[16px] text-[#2D3D4D]">Product</p>
-                    <p className="shrink-0 text-right text-[13px] font-medium text-[#2D3D4D]">
-                      {getItemTitle(quote.productId)}
-                    </p>
-                  </div>
+                  <div className="rounded-[8px] border-b border-[#2D3D4D] bg-white">
+                    <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
+                      <p className="text-[16px] text-[#2D3D4D]">Product</p>
+                      <p className="shrink-0 text-right text-[13px] font-medium text-[#2D3D4D]">
+                        {getItemTitle(quote.productId)}
+                      </p>
+                    </div>
 
-                  <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
-                    <p className="text-[16px] text-[#2D3D4D]">Product Price</p>
-                    <p className="shrink-0 text-[13px] font-medium text-[#2D3D4D]">
-                      {getItemPrice(quote.productId)}
-                    </p>
-                  </div>
+                    <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
+                      <p className="text-[16px] text-[#2D3D4D]">Product Price</p>
+                      <p className="shrink-0 text-[13px] font-medium text-[#2D3D4D]">
+                        {getItemPrice(quote.productId)}
+                      </p>
+                    </div>
 
-                  <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
-                    <p className="text-[16px] text-[#2D3D4D]">Controller</p>
-                    <p className="shrink-0 text-right text-[13px] font-medium text-[#2D3D4D]">
-                      {getItemTitle(quote.controller)}
-                    </p>
-                  </div>
+                    <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
+                      <p className="text-[16px] text-[#2D3D4D]">Controller</p>
+                      <p className="shrink-0 text-right text-[13px] font-medium text-[#2D3D4D]">
+                        {getItemTitle(quote.controller)}
+                      </p>
+                    </div>
 
-                  <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
-                    <p className="text-[16px] text-[#2D3D4D]">Controller Price</p>
-                    <p className="shrink-0 text-[13px] font-medium text-[#2D3D4D]">
-                      {getItemPrice(quote.controller)}
-                    </p>
-                  </div>
+                    <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
+                      <p className="text-[16px] text-[#2D3D4D]">Controller Price</p>
+                      <p className="shrink-0 text-[13px] font-medium text-[#2D3D4D]">
+                        {getItemPrice(quote.controller)}
+                      </p>
+                    </div>
 
-                  <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
-                    <p className="text-[16px] text-[#2D3D4D]">Extra</p>
-                    <p className="shrink-0 text-right text-[13px] font-medium text-[#2D3D4D]">
-                      {getItemTitle(quote.extra)}
-                    </p>
-                  </div>
+                    <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
+                      <p className="text-[16px] text-[#2D3D4D]">Extra</p>
+                      <p className="shrink-0 text-right text-[13px] font-medium text-[#2D3D4D]">
+                        {getItemTitle(quote.extra)}
+                      </p>
+                    </div>
 
-                  <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
-                    <p className="text-[16px] text-[#2D3D4D]">Extra Price</p>
-                    <p className="shrink-0 text-[13px] font-medium text-[#2D3D4D]">
-                      {getItemPrice(quote.extra)}
-                    </p>
-                  </div>
+                    <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
+                      <p className="text-[16px] text-[#2D3D4D]">Extra Price</p>
+                      <p className="shrink-0 text-[13px] font-medium text-[#2D3D4D]">
+                        {getItemPrice(quote.extra)}
+                      </p>
+                    </div>
 
-                  <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
-                    <p className="text-[16px] text-[#2D3D4D]">Survey Date</p>
-                    <p className="shrink-0 text-[13px] font-medium text-[#2D3D4D]">
-                      {formatDate(quote.surveyDate)}
-                    </p>
-                  </div>
+                    <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
+                      <p className="text-[16px] text-[#2D3D4D]">Survey Date</p>
+                      <p className="shrink-0 text-[13px] font-medium text-[#2D3D4D]">
+                        {formatDate(quote.surveyDate)}
+                      </p>
+                    </div>
 
-                  <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
-                    <p className="text-[16px] text-[#2D3D4D]">Install Date</p>
-                    <p className="shrink-0 text-[13px] font-medium text-[#2D3D4D]">
-                      {formatDate(quote.installDate)}
-                    </p>
-                  </div>
+                    <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
+                      <p className="text-[16px] text-[#2D3D4D]">Install Date</p>
+                      <p className="shrink-0 text-[13px] font-medium text-[#2D3D4D]">
+                        {formatDate(quote.installDate)}
+                      </p>
+                    </div>
 
-                  <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
-                    <p className="text-[16px] text-[#2D3D4D]">Payment</p>
-                    <p className="shrink-0 text-[13px] font-medium text-[#2D3D4D]">
-                      {paymentMethod}
-                    </p>
-                  </div>
+                    <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
+                      <p className="text-[16px] text-[#2D3D4D]">Payment</p>
+                      <p className="shrink-0 text-[13px] font-medium text-[#2D3D4D]">
+                        {paymentMethod}
+                      </p>
+                    </div>
 
-                  <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
-                    <p className="text-[16px] text-[#2D3D4D]">Monthly Plan</p>
-                    <p className="shrink-0 text-[13px] font-medium text-[#2D3D4D]">
-                      {quote.payMounthlyData
-                        ? `Deposit ${formatCurrency(quote.payMounthlyData.deposit)} • ${quote.payMounthlyData.mounthNumber ?? 0} months • ${formatCurrency(quote.payMounthlyData.amount)}/month`
-                        : "N/A"}
-                    </p>
-                  </div>
+                    <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
+                      <p className="text-[16px] text-[#2D3D4D]">Monthly Plan</p>
+                      <p className="shrink-0 text-[13px] font-medium text-[#2D3D4D]">
+                        {quote.payMounthlyData
+                          ? `Deposit ${formatCurrency(quote.payMounthlyData.deposit)} • ${quote.payMounthlyData.mounthNumber ?? 0} months • ${formatCurrency(quote.payMounthlyData.amount)}/month`
+                          : "N/A"}
+                      </p>
+                    </div>
 
-                  <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
-                    <p className="text-[16px] text-[#2D3D4D]">Install Address</p>
-                    <p className="shrink-0 text-right text-[13px] font-medium text-[#2D3D4D]">
-                      {quote.installAddress || quote.personalInfo?.postcode || "N/A"}
-                    </p>
-                  </div>
+                    <div className="flex items-center justify-between gap-4 border-b border-dashed border-[#D9E0E7] px-4 py-3">
+                      <p className="text-[16px] text-[#2D3D4D]">Install Address</p>
+                      <p className="shrink-0 text-right text-[13px] font-medium text-[#2D3D4D]">
+                        {quote.installAddress || quote.personalInfo?.postcode || "N/A"}
+                      </p>
+                    </div>
 
-                  <div className="flex items-center justify-between gap-4 px-4 py-3">
-                    <p className="text-[16px] text-[#2D3D4D]">Created At</p>
-                    <p className="shrink-0 text-[13px] font-medium text-[#2D3D4D]">
-                      {formatDateTime(quote.createdAt)}
-                    </p>
+                    <div className="flex items-center justify-between gap-4 px-4 py-3">
+                      <p className="text-[16px] text-[#2D3D4D]">Created At</p>
+                      <p className="shrink-0 text-[13px] font-medium text-[#2D3D4D]">
+                        {formatDateTime(quote.createdAt)}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-5 space-y-3">
-                <Button className="h-[48px] w-full rounded-[4px] bg-[#FFDE59] text-[16px] font-semibold text-[#2D3D4D] hover:bg-[#FBFF26]/95">
-                  Email quote via email
-                </Button>
+                <div className="mt-5 space-y-3">
+                  <Button
+                    className="h-[48px] w-full rounded-[4px] bg-[#FBFF26] text-[16px] font-semibold text-[#2D3D4D] hover:bg-[#FBFF26]/95"
+                    onClick={() => setIsSendEmailModalOpen(true)}
+                  >
+                    Send an email
+                  </Button>
 
-                <Button
-                  className="h-[48px] w-full rounded-[4px] bg-[#00A56F] text-[16px] font-semibold text-white hover:bg-[#009562]"
-                  onClick={handleWhatsappClick}
-                  disabled={!whatsappNumber}
-                >
-                  Call Your customer via whatsapp
-                </Button>
+                  <Button
+                    className="h-[48px] w-full rounded-[4px] bg-[#00A56F] text-[16px] font-semibold text-white hover:bg-[#009562]"
+                    onClick={handleWhatsappClick}
+                    disabled={!whatsappNumber}
+                  >
+                    Call Your customer via whatsapp
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
-        </DialogContent>
-      </DialogPortal>
-    </Dialog>
+            )}
+          </DialogContent>
+        </DialogPortal>
+      </Dialog>
+
+      <SendQuoteEmailModal
+        open={isSendEmailModalOpen}
+        onOpenChange={setIsSendEmailModalOpen}
+        quoteId={quoteId}
+      />
+    </>
   );
 }
