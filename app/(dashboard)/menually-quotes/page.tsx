@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CustomPagination } from "@/components/ui/common/CustomPagination";
 
 type InvoiceCustomerInfo = {
   name?: string;
@@ -108,6 +109,15 @@ const resolveInvoiceCollectionEndpoint = () => {
 const resolveInvoiceDeleteEndpoint = (id: string) =>
   `${resolveInvoiceCollectionEndpoint()}/${id}`;
 
+const resolveInvoiceListEndpoint = (page: number, limit: number) => {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+
+  return `${resolveInvoiceCollectionEndpoint()}?${params.toString()}`;
+};
+
 const buildAddressFromObject = (record: Record<string, unknown>) => {
   const directKeys = [
     'fullAddress',
@@ -194,6 +204,21 @@ const asRecord = (value: unknown): Record<string, unknown> | null => {
   return value as Record<string, unknown>;
 };
 
+const asNumber = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return null;
+};
+
 const normalizeInvoiceArray = (value: unknown): InvoiceItem[] => {
   if (!Array.isArray(value)) return [];
 
@@ -258,6 +283,8 @@ const formatCurrency = (value?: number) => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 'N/A';
   return `£${value.toLocaleString('en-GB')}`;
 };
+
+const MANUAL_QUOTES_PAGE_SIZE = 10;
 
 const getQuoteReference = (invoice: InvoiceItem) => {
   if (typeof invoice.quoteId === 'string' && invoice.quoteId.trim()) {
@@ -648,6 +675,8 @@ const ManualQuoteForm = ({ onBack }: ManualQuoteFormProps) => {
 export default function ManualQuotesPage() {
   const [isCreateMode, setIsCreateMode] = useState(false);
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionMessage, setActionMessage] = useState('');
@@ -663,7 +692,7 @@ export default function ManualQuotesPage() {
     setActionMessage('');
 
     try {
-      const response = await fetch(resolveInvoiceCollectionEndpoint(), {
+      const response = await fetch(resolveInvoiceListEndpoint(page, MANUAL_QUOTES_PAGE_SIZE), {
         method: 'GET',
         cache: 'no-store',
       });
@@ -676,9 +705,18 @@ export default function ManualQuotesPage() {
       }
 
       const rows = extractInvoices(result?.data ?? result);
+      const payloadRecord = asRecord(result?.data ?? result);
+      const nestedPayloadRecord = asRecord(payloadRecord?.data);
+      const total =
+        asNumber(nestedPayloadRecord?.total) ??
+        asNumber(payloadRecord?.total) ??
+        rows.length;
+
       setInvoices(rows);
+      setTotalItems(Math.max(0, Math.floor(total)));
     } catch (loadError) {
       setInvoices([]);
+      setTotalItems(0);
       setError(
         loadError instanceof Error
           ? loadError.message
@@ -687,7 +725,7 @@ export default function ManualQuotesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     if (!isCreateMode) {
@@ -716,9 +754,15 @@ export default function ManualQuotesPage() {
       }
 
       setInvoices((prev) => prev.filter((item) => item._id !== id));
+      setTotalItems((prev) => Math.max(0, prev - 1));
       setActionMessage('Invoice deleted successfully.');
       setIsDeleteOpen(false);
       setDeleteTarget(null);
+
+      const isLastItemOnPage = invoices.length === 1;
+      if (isLastItemOnPage && page > 1) {
+        setPage((prev) => Math.max(1, prev - 1));
+      }
     } catch (deleteError) {
       setError(
         deleteError instanceof Error
@@ -729,6 +773,16 @@ export default function ManualQuotesPage() {
       setDeletingId(null);
     }
   };
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / MANUAL_QUOTES_PAGE_SIZE));
+  const startItem = totalItems === 0 ? 0 : (page - 1) * MANUAL_QUOTES_PAGE_SIZE + 1;
+  const endItem = Math.min(page * MANUAL_QUOTES_PAGE_SIZE, totalItems);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   const handleOpenDetails = (invoice: InvoiceItem) => {
     setSelectedInvoice(invoice);
@@ -755,8 +809,8 @@ export default function ManualQuotesPage() {
   };
 
   const totalQuotesLabel = useMemo(
-    () => `${invoices.length} manual quote${invoices.length === 1 ? '' : 's'}`,
-    [invoices.length]
+    () => `${totalItems} manual quote${totalItems === 1 ? '' : 's'}`,
+    [totalItems]
   );
 
   const selectedCustomerInfo = selectedInvoice?.customerInfo ?? {};
@@ -858,9 +912,7 @@ export default function ManualQuotesPage() {
             <Table className="min-w-[980px]">
               <TableHeader>
                 <TableRow className="border-none bg-[#F4F7F9] hover:bg-[#F4F7F9]">
-                  <TableHead className="h-[42px] rounded-l-[8px] px-4 text-[16px] font-medium text-[#00A56F]">
-                    Quote Ref
-                  </TableHead>
+                
                   <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">
                     Customer Name
                   </TableHead>
@@ -870,9 +922,7 @@ export default function ManualQuotesPage() {
                   <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">
                     Address
                   </TableHead>
-                  <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">
-                    Status
-                  </TableHead>
+               
                   <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">
                     Created
                   </TableHead>
@@ -925,9 +975,7 @@ export default function ManualQuotesPage() {
                         key={invoice._id}
                         className="border-b border-[#EDF1F4] hover:bg-transparent"
                       >
-                        <TableCell className="px-4 py-[14px] text-[15px] font-medium text-[#2D3D4D]">
-                          {getQuoteReference(invoice)}
-                        </TableCell>
+                     
                         <TableCell className="px-4 py-[14px] text-[15px] font-medium text-[#2D3D4D]">
                           {customerInfo.name || 'N/A'}
                         </TableCell>
@@ -942,9 +990,7 @@ export default function ManualQuotesPage() {
                               {fullAddress || 'N/A'}
                             </p>
                           </TableCell>
-                        <TableCell className="px-4 py-[14px] text-[15px] font-medium capitalize text-[#2D3D4D]">
-                          {invoice.status || 'pending'}
-                        </TableCell>
+                      
                         <TableCell className="px-4 py-[14px] text-[15px] font-medium text-[#2D3D4D]">
                           {formatDate(invoice.createdAt)}
                         </TableCell>
@@ -976,6 +1022,18 @@ export default function ManualQuotesPage() {
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-[13px] font-medium text-[#64748B]">
+              Showing {startItem} to {endItem} of {totalItems} results
+            </p>
+
+            <CustomPagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
           </div>
         </div>
         </div>
@@ -1071,13 +1129,13 @@ export default function ManualQuotesPage() {
 
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-md bg-[#F7FAFC] p-3">
-                  <p className="mb-2 text-xs font-medium text-[#5E6B78]">Boilers</p>
+                  <p className="mb-2 text-xs font-medium text-[#5E6B78]">Boilers </p>
                   {Array.isArray(selectedInvoice.boilers) && selectedInvoice.boilers.length > 0 ? (
                     <div className="space-y-2">
                       {selectedInvoice.boilers.map((item, index) => (
                         <div key={`boiler-${index}`} className="text-xs text-[#2D3D4D]">
                           <p className="font-medium">{item.name || 'N/A'}</p>
-                          <p>Qty: {item.numberOfBoiler ?? 0}</p>
+                         <p>Qty: {item.numberOfBoiler || 'N/A'}</p>
                           <p>Price: {formatCurrency(item.price)}</p>
                         </div>
                       ))}

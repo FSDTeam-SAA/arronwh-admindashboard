@@ -8,20 +8,20 @@ import { useManualQuoteStore } from '../_store/useManualQuoteStore';
 
 type BoilerItem = {
   name: string;
-  numberOfBoiler: number;
-  price: number;
+  numberOfBoiler: string;
+  price: string;
 };
 
 type ControllerItem = {
   name: string;
-  numberOfControllers: number;
-  price: number;
+  numberOfControllers: string;
+  price: string;
 };
 
 type ExtraItem = {
   name: string;
-  numberOfExtra: number;
-  price: number;
+  numberOfExtra: string;
+  price: string;
 };
 
 type InvoicePayload = {
@@ -33,9 +33,21 @@ type InvoicePayload = {
     address?: string;
     postcode?: string;
   };
-  boilers?: BoilerItem[];
-  controllers?: ControllerItem[];
-  extras?: ExtraItem[];
+  boilers?: Array<{
+    name: string;
+    numberOfBoiler: number;
+    price: number;
+  }>;
+  controllers?: Array<{
+    name: string;
+    numberOfControllers: number;
+    price: number;
+  }>;
+  extras?: Array<{
+    name: string;
+    numberOfExtra: number;
+    price: number;
+  }>;
   vatRate?: number;
   status?: string;
   dueDate?: string;
@@ -45,20 +57,20 @@ type InvoicePayload = {
 
 const createBoilerItem = (): BoilerItem => ({
   name: '',
-  numberOfBoiler: 1,
-  price: 0,
+  numberOfBoiler: '',
+  price: '',
 });
 
 const createControllerItem = (): ControllerItem => ({
   name: '',
-  numberOfControllers: 1,
-  price: 0,
+  numberOfControllers: '',
+  price: '',
 });
 
 const createExtraItem = (): ExtraItem => ({
   name: '',
-  numberOfExtra: 1,
-  price: 0,
+  numberOfExtra: '',
+  price: '',
 });
 
 const resolveInvoiceEndpoint = () => {
@@ -113,20 +125,27 @@ const InvoicePage = () => {
   }, [formData]);
 
   const subtotal = useMemo(() => {
-    const boilerTotal = boilers.reduce(
-      (sum, item) => sum + numberOrZero(item.price) * Math.max(0, item.numberOfBoiler),
-      0,
-    );
-    const controllerTotal = controllers.reduce(
-      (sum, item) => sum + numberOrZero(item.price) * Math.max(0, item.numberOfControllers),
-      0,
-    );
-    const extraTotal = extras.reduce(
-      (sum, item) => sum + numberOrZero(item.price) * Math.max(0, item.numberOfExtra),
-      0,
-    );
+    const boilerTotal = boilers.reduce((sum, item) => {
+      const price = numberOrZero(Number(item.price));
+      const quantity = numberOrZero(Number(item.numberOfBoiler));
+      return sum + price * quantity;
+    }, 0);
+
+    const controllerTotal = controllers.reduce((sum, item) => {
+      const price = numberOrZero(Number(item.price));
+      const quantity = numberOrZero(Number(item.numberOfControllers));
+      return sum + price * quantity;
+    }, 0);
+
+    const extraTotal = extras.reduce((sum, item) => {
+      const price = numberOrZero(Number(item.price));
+      const quantity = numberOrZero(Number(item.numberOfExtra));
+      return sum + price * quantity;
+    }, 0);
+
     return boilerTotal + controllerTotal + extraTotal;
   }, [boilers, controllers, extras]);
+  
 
   const vatAmount = useMemo(() => subtotal * (Math.max(0, vatRate) / 100), [subtotal, vatRate]);
   const grandTotal = useMemo(() => subtotal + vatAmount, [subtotal, vatAmount]);
@@ -148,11 +167,7 @@ const InvoicePage = () => {
     );
   }
 
-  const handleBoilerChange = (
-    index: number,
-    key: keyof BoilerItem,
-    value: string | number,
-  ) => {
+  const handleBoilerChange = (index: number, key: keyof BoilerItem, value: string) => {
     setBoilers((prev) =>
       prev.map((item, itemIndex) =>
         itemIndex === index ? { ...item, [key]: value } : item,
@@ -160,11 +175,7 @@ const InvoicePage = () => {
     );
   };
 
-  const handleControllerChange = (
-    index: number,
-    key: keyof ControllerItem,
-    value: string | number,
-  ) => {
+  const handleControllerChange = (index: number, key: keyof ControllerItem, value: string) => {
     setControllers((prev) =>
       prev.map((item, itemIndex) =>
         itemIndex === index ? { ...item, [key]: value } : item,
@@ -172,11 +183,7 @@ const InvoicePage = () => {
     );
   };
 
-  const handleExtraChange = (
-    index: number,
-    key: keyof ExtraItem,
-    value: string | number,
-  ) => {
+  const handleExtraChange = (index: number, key: keyof ExtraItem, value: string) => {
     setExtras((prev) =>
       prev.map((item, itemIndex) =>
         itemIndex === index ? { ...item, [key]: value } : item,
@@ -192,7 +199,7 @@ const InvoicePage = () => {
       .filter((item) => item.name.trim())
       .map((item) => ({
         name: item.name.trim(),
-        numberOfBoiler: Math.max(1, Number(item.numberOfBoiler) || 1),
+        numberOfBoiler: numberOrZero(Number(item.numberOfBoiler)),
         price: numberOrZero(Number(item.price)),
       }));
 
@@ -200,7 +207,7 @@ const InvoicePage = () => {
       .filter((item) => item.name.trim())
       .map((item) => ({
         name: item.name.trim(),
-        numberOfControllers: Math.max(1, Number(item.numberOfControllers) || 1),
+        numberOfControllers: numberOrZero(Number(item.numberOfControllers)),
         price: numberOrZero(Number(item.price)),
       }));
 
@@ -208,7 +215,7 @@ const InvoicePage = () => {
       .filter((item) => item.name.trim())
       .map((item) => ({
         name: item.name.trim(),
-        numberOfExtra: Math.max(1, Number(item.numberOfExtra) || 1),
+        numberOfExtra: numberOrZero(Number(item.numberOfExtra)),
         price: numberOrZero(Number(item.price)),
       }));
 
@@ -232,6 +239,7 @@ const InvoicePage = () => {
     };
 
     setIsSubmitting(true);
+
     try {
       const res = await fetch(resolveInvoiceEndpoint(), {
         method: 'POST',
@@ -252,6 +260,7 @@ const InvoicePage = () => {
       setSubmitError(error instanceof Error ? error.message : 'Failed to create invoice.');
     } finally {
       setIsSubmitting(false);
+      
     }
   };
 
@@ -264,19 +273,21 @@ const InvoicePage = () => {
         </p>
 
         <div className="mt-5 grid gap-3 md:grid-cols-3">
-        
           <div className="rounded-md bg-[#F7FAFC] p-3">
             <p className="text-xl mb-2 text-[#5E6B78]">Customer Name</p>
             <p className="text-sm font-semibold text-[#2D3D4D]">{customerInfo.name}</p>
           </div>
+
           <div className="rounded-md bg-[#F7FAFC] p-3">
             <p className="text-xl mb-2 text-[#5E6B78]">Email</p>
             <p className="text-sm font-semibold text-[#2D3D4D]">{customerInfo.email}</p>
           </div>
+
           <div className="rounded-md bg-[#F7FAFC] p-3">
             <p className="text-xl mb-2 text-[#5E6B78]">Phone</p>
             <p className="text-sm font-semibold text-[#2D3D4D]">{customerInfo.phone || 'N/A'}</p>
           </div>
+
           <div className="rounded-md bg-[#F7FAFC] p-3 md:col-span-2">
             <p className="text-xl mb-2 text-[#5E6B78]">Address</p>
             <p className="text-sm font-semibold text-[#2D3D4D]">
@@ -302,9 +313,14 @@ const InvoicePage = () => {
 
           <div className="space-y-3">
             {boilers.map((item, index) => (
-              <div key={`boiler-${index}`} className="grid gap-3 rounded-md border border-[#E5EAF0] p-3 md:grid-cols-12">
+              <div
+                key={`boiler-${index}`}
+                className="grid gap-3 rounded-md border border-[#E5EAF0] p-3 md:grid-cols-12"
+              >
                 <div className="md:col-span-6">
-                  <label className="mb-1 block text-sm font-medium text-[#2D3D4D]">Name</label>
+                  <label className="mb-1 block text-sm font-medium text-[#2D3D4D]">
+                    Name
+                  </label>
                   <input
                     value={item.name}
                     onChange={(e) => handleBoilerChange(index, 'name', e.target.value)}
@@ -312,37 +328,46 @@ const InvoicePage = () => {
                     className="h-11 w-full rounded-md border border-[#D5DCE3] px-3 text-sm text-[#2D3D4D] focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
+
                 <div className="md:col-span-2">
-                  <label className="mb-1 block text-sm font-medium text-[#2D3D4D]">Quantity</label>
+                  <label className="mb-1 block text-sm font-medium text-[#2D3D4D]">
+                    Quantity
+                  </label>
                   <input
                     type="number"
-                    min={1}
+                    min={0}
                     value={item.numberOfBoiler}
                     onChange={(e) =>
-                      handleBoilerChange(index, 'numberOfBoiler', Math.max(1, Number(e.target.value) || 1))
+                      handleBoilerChange(index, 'numberOfBoiler', e.target.value)
                     }
+                    placeholder="Qty"
                     className="h-11 w-full rounded-md border border-[#D5DCE3] px-3 text-sm text-[#2D3D4D] focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
+
                 <div className="md:col-span-3">
-                  <label className="mb-1 block text-sm font-medium text-[#2D3D4D]">Price</label>
+                  <label className="mb-1 block text-sm font-medium text-[#2D3D4D]">
+                    Price
+                  </label>
                   <input
                     type="number"
                     min={0}
                     step="0.01"
                     value={item.price}
-                    onChange={(e) =>
-                      handleBoilerChange(index, 'price', Math.max(0, Number(e.target.value) || 0))
-                    }
+                    onChange={(e) => handleBoilerChange(index, 'price', e.target.value)}
+                    placeholder="Price"
                     className="h-11 w-full rounded-md border border-[#D5DCE3] px-3 text-sm text-[#2D3D4D] focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
+
                 <div className="md:col-span-1 md:flex md:items-end md:justify-end">
                   <button
                     type="button"
                     onClick={() =>
                       setBoilers((prev) =>
-                        prev.length > 1 ? prev.filter((_, itemIndex) => itemIndex !== index) : prev,
+                        prev.length > 1
+                          ? prev.filter((_, itemIndex) => itemIndex !== index)
+                          : prev,
                       )
                     }
                     className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-[#E6BAC0] text-[#C0392B] hover:bg-[#FFF4F5]"
@@ -375,7 +400,9 @@ const InvoicePage = () => {
                 className="grid gap-3 rounded-md border border-[#E5EAF0] p-3 md:grid-cols-12"
               >
                 <div className="md:col-span-6">
-                  <label className="mb-1 block text-sm font-medium text-[#2D3D4D]">Name</label>
+                  <label className="mb-1 block text-sm font-medium text-[#2D3D4D]">
+                    Name
+                  </label>
                   <input
                     value={item.name}
                     onChange={(e) => handleControllerChange(index, 'name', e.target.value)}
@@ -383,37 +410,46 @@ const InvoicePage = () => {
                     className="h-11 w-full rounded-md border border-[#D5DCE3] px-3 text-sm text-[#2D3D4D] focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
+
                 <div className="md:col-span-2">
-                  <label className="mb-1 block text-sm font-medium text-[#2D3D4D]">Quantity</label>
+                  <label className="mb-1 block text-sm font-medium text-[#2D3D4D]">
+                    Quantity
+                  </label>
                   <input
                     type="number"
-                    min={1}
+                    min={0}
                     value={item.numberOfControllers}
                     onChange={(e) =>
-                      handleControllerChange(index, 'numberOfControllers', Math.max(1, Number(e.target.value) || 1))
+                      handleControllerChange(index, 'numberOfControllers', e.target.value)
                     }
+                    placeholder="Qty"
                     className="h-11 w-full rounded-md border border-[#D5DCE3] px-3 text-sm text-[#2D3D4D] focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
+
                 <div className="md:col-span-3">
-                  <label className="mb-1 block text-sm font-medium text-[#2D3D4D]">Price</label>
+                  <label className="mb-1 block text-sm font-medium text-[#2D3D4D]">
+                    Price
+                  </label>
                   <input
                     type="number"
                     min={0}
                     step="0.01"
                     value={item.price}
-                    onChange={(e) =>
-                      handleControllerChange(index, 'price', Math.max(0, Number(e.target.value) || 0))
-                    }
+                    onChange={(e) => handleControllerChange(index, 'price', e.target.value)}
+                    placeholder="Price"
                     className="h-11 w-full rounded-md border border-[#D5DCE3] px-3 text-sm text-[#2D3D4D] focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
+
                 <div className="md:col-span-1 md:flex md:items-end md:justify-end">
                   <button
                     type="button"
                     onClick={() =>
                       setControllers((prev) =>
-                        prev.length > 1 ? prev.filter((_, itemIndex) => itemIndex !== index) : prev,
+                        prev.length > 1
+                          ? prev.filter((_, itemIndex) => itemIndex !== index)
+                          : prev,
                       )
                     }
                     className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-[#E6BAC0] text-[#C0392B] hover:bg-[#FFF4F5]"
@@ -441,9 +477,14 @@ const InvoicePage = () => {
 
           <div className="space-y-3">
             {extras.map((item, index) => (
-              <div key={`extra-${index}`} className="grid gap-3 rounded-md border border-[#E5EAF0] p-3 md:grid-cols-12">
+              <div
+                key={`extra-${index}`}
+                className="grid gap-3 rounded-md border border-[#E5EAF0] p-3 md:grid-cols-12"
+              >
                 <div className="md:col-span-6">
-                  <label className="mb-1 block text-sm font-medium text-[#2D3D4D]">Name</label>
+                  <label className="mb-1 block text-sm font-medium text-[#2D3D4D]">
+                    Name
+                  </label>
                   <input
                     value={item.name}
                     onChange={(e) => handleExtraChange(index, 'name', e.target.value)}
@@ -451,37 +492,46 @@ const InvoicePage = () => {
                     className="h-11 w-full rounded-md border border-[#D5DCE3] px-3 text-sm text-[#2D3D4D] focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
+
                 <div className="md:col-span-2">
-                  <label className="mb-1 block text-sm font-medium text-[#2D3D4D]">Quantity</label>
+                  <label className="mb-1 block text-sm font-medium text-[#2D3D4D]">
+                    Quantity
+                  </label>
                   <input
                     type="number"
-                    min={1}
+                    min={0}
                     value={item.numberOfExtra}
                     onChange={(e) =>
-                      handleExtraChange(index, 'numberOfExtra', Math.max(1, Number(e.target.value) || 1))
+                      handleExtraChange(index, 'numberOfExtra', e.target.value)
                     }
+                    placeholder="Qty"
                     className="h-11 w-full rounded-md border border-[#D5DCE3] px-3 text-sm text-[#2D3D4D] focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
+
                 <div className="md:col-span-3">
-                  <label className="mb-1 block text-sm font-medium text-[#2D3D4D]">Price</label>
+                  <label className="mb-1 block text-sm font-medium text-[#2D3D4D]">
+                    Price
+                  </label>
                   <input
                     type="number"
                     min={0}
                     step="0.01"
                     value={item.price}
-                    onChange={(e) =>
-                      handleExtraChange(index, 'price', Math.max(0, Number(e.target.value) || 0))
-                    }
+                    onChange={(e) => handleExtraChange(index, 'price', e.target.value)}
+                    placeholder="Price"
                     className="h-11 w-full rounded-md border border-[#D5DCE3] px-3 text-sm text-[#2D3D4D] focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
+
                 <div className="md:col-span-1 md:flex md:items-end md:justify-end">
                   <button
                     type="button"
                     onClick={() =>
                       setExtras((prev) =>
-                        prev.length > 1 ? prev.filter((_, itemIndex) => itemIndex !== index) : prev,
+                        prev.length > 1
+                          ? prev.filter((_, itemIndex) => itemIndex !== index)
+                          : prev,
                       )
                     }
                     className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-[#E6BAC0] text-[#C0392B] hover:bg-[#FFF4F5]"
@@ -512,8 +562,6 @@ const InvoicePage = () => {
         <section className="rounded-xl border border-[#D9E0E7] bg-white p-5 md:p-6">
           <h2 className="text-lg font-semibold text-[#2D3D4D]">Amount Summary</h2>
           <div className="mt-4 space-y-2 text-sm text-[#2D3D4D]">
-          
-          
             <div className="mt-2 flex justify-between border-t border-[#E5EAF0] pt-2 text-base font-semibold">
               <span>Total</span>
               <span>£{grandTotal.toFixed(2)}</span>
@@ -526,6 +574,7 @@ const InvoicePage = () => {
             {submitError}
           </div>
         )}
+
         <div className="flex justify-end">
           <button
             type="submit"

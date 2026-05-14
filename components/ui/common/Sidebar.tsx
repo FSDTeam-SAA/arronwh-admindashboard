@@ -22,6 +22,8 @@ import {
   ChevronDown,
   ChevronRight,
   Globe,
+  Calendar1,
+  UserPlus,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -41,7 +43,8 @@ const navigation = [
 const crmManagementItems = [
   { name: "Quote Management", href: "/quotes", icon: FileText },
   { name: "Booking Management", href: "/bookings", icon: CalendarCheck },
-  { name: "Menually Quote Management", href: "/menually-quotes", icon: FileText },
+  { name: "Menually Quote Management", href: "/menually-quotes", icon: Calendar1 },
+  { name: "Add New Customer", href: "/customers", icon: UserPlus },
 ];
 
 const websiteManagementItems = [
