@@ -75,7 +75,7 @@ const EMPTY_VALUE_FORM: ValueFormState = {
   imageFile: null,
 };
 
-const VALUES_HEADER_ID = "6a0401f625e9892d6d329c3e";
+const VALUES_HEADER_ID = '6a0401f625e9892d6d329c3e';
 
 const getApiBase = () => (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').replace(/\/+$/, '');
 
@@ -101,10 +101,21 @@ const toArray = (value: unknown) => {
   return [];
 };
 
+const isValidImageSrc = (value: string) => {
+  if (!value) return false;
+  return (
+    value.startsWith('/') ||
+    value.startsWith('http://') ||
+    value.startsWith('https://') ||
+    value.startsWith('data:') ||
+    value.startsWith('blob:')
+  );
+};
+
 const normalizeHeaderItem = (payload: unknown): HeaderItem | null => {
   const parsed = payload as ApiEnvelope<unknown>;
   const item = parsed?.data as Partial<HeaderItem> | null;
-  
+
   if (!item || !item._id) return null;
 
   return {
@@ -433,6 +444,7 @@ export default function AboutOurValuesContainer() {
   const combinedLoading =
     status === 'loading' || headerQuery.isLoading || valuesQuery.isLoading;
   const previewImage = previewUrl || currentImageUrl;
+  const safePreviewImage = isValidImageSrc(previewImage) ? previewImage : '';
   const deleteLabel = deleteTarget?.title || 'this value';
 
   if (status === 'unauthenticated') {
@@ -539,7 +551,7 @@ export default function AboutOurValuesContainer() {
               />
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 ">
               <Label htmlFor="value-image">Image Upload</Label>
               <input
                 id="value-image"
@@ -564,14 +576,14 @@ export default function AboutOurValuesContainer() {
                 </div>
               </label>
 
-              {previewImage ? (
-                <div className="relative h-44 overflow-hidden rounded-xl border border-[#E2E8F0]">
+              {safePreviewImage ? (
+                <div className="bg-gray-400 relative h-16 overflow-hidden rounded-xl border border-[#E2E8F0]">
                   <Image
-                    src={previewImage}
+                    src={safePreviewImage}
                     alt={valueForm.title || 'Value preview'}
                     fill
-                    className="object-contain"
-                    sizes="(max-width: 768px) 100vw, 420px"
+                    className="object-contain w-auto h-8 p-2"
+                    // sizes="(max-width: 768px) 100vw, 420px"
                   />
                 </div>
               ) : (
@@ -626,14 +638,13 @@ export default function AboutOurValuesContainer() {
                   key={item._id}
                   className="group overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                 >
-                  <div className="relative mb-4 h-40 overflow-hidden rounded-xl bg-[#E2E8F0]">
-                    {item.image ? (
+                  <div className="relative mb-4 h-16 overflow-hidden rounded-xl bg-gray-400">
+                    {isValidImageSrc(item.image) ? (
                       <Image
                         src={item.image}
                         alt={item.title || 'Value image'}
                         fill
-                        className="object-contain transition group-hover:scale-[1.02]"
-                        sizes="(max-width: 768px) 100vw, 320px"
+                        className="object-contain w-auto h-8 p-2 transition group-hover:scale-[1.02]"
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center text-sm text-[#64748B]">

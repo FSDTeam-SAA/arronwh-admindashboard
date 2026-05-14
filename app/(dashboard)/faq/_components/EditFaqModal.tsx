@@ -18,7 +18,14 @@ type FAQItem = {
   id: string;
   question: string;
   answer: string;
+  category?: string;
 };
+
+const FAQ_CATEGORY_OPTIONS = [
+  "Buying with",
+  "Delivery and installation",
+  "After your boiler is installed",
+] as const;
 
 interface EditFaqModalProps {
   open: boolean;
@@ -35,6 +42,7 @@ export function EditFaqModal({
 }: EditFaqModalProps) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
+  const [category, setCategory] = useState<string>(FAQ_CATEGORY_OPTIONS[0]);
   const queryClient = useQueryClient();
   const { data: session } = useSession();
   const token = session?.accessToken;
@@ -43,11 +51,16 @@ export function EditFaqModal({
     if (faq) {
       setQuestion(faq.question);
       setAnswer(faq.answer);
+      setCategory(faq.category || FAQ_CATEGORY_OPTIONS[0]);
     }
   }, [faq]);
 
   const updateFaqMutation = useMutation({
-    mutationFn: async (payload: { question: string; answer: string }) => {
+    mutationFn: async (payload: {
+      question: string;
+      answer: string;
+      category: string;
+    }) => {
       if (!faq) {
         throw new Error("FAQ not selected.");
       }
@@ -77,6 +90,7 @@ export function EditFaqModal({
         id: faq?.id ?? "",
         question: updated.question ?? question.trim(),
         answer: updated.answer ?? answer.trim(),
+        category: updated.category ?? category.trim(),
       };
       onUpdated(nextFaq);
       queryClient.invalidateQueries({ queryKey: ["faqs", token] });
@@ -90,10 +104,11 @@ export function EditFaqModal({
   });
 
   const handleSubmit = () => {
-    if (!question.trim() || !answer.trim()) return;
+    if (!question.trim() || !answer.trim() || !category.trim()) return;
     updateFaqMutation.mutate({
       question: question.trim(),
       answer: answer.trim(),
+      category: category.trim(),
     });
   };
 
@@ -141,6 +156,22 @@ export function EditFaqModal({
                   placeholder="Type FAQ answer..."
                   className="h-[48px] rounded-[10px] border-0 bg-[#F4F7F9] px-4 text-[14px] text-[#2D3D4D] placeholder:text-[#9CA3AF] focus-visible:ring-1 focus-visible:ring-[#d7dfe7]"
                 />
+              </div>
+              <div>
+                <label className="mb-2 block text-[14px] font-medium text-[#2D3D4D]">
+                  Category
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="h-[48px] w-full rounded-[10px] border-0 bg-[#F4F7F9] px-4 text-[14px] text-[#2D3D4D] focus:outline-none focus:ring-1 focus:ring-[#d7dfe7]"
+                >
+                  {FAQ_CATEGORY_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-1 gap-4 pt-1 sm:grid-cols-2">
