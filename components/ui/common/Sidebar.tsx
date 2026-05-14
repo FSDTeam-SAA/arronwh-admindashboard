@@ -227,7 +227,7 @@ export function Sidebar() {
                 isCrmManagementActive ? "text-slate-900" : "text-slate-800",
               )}
             >
-              CRM Management
+              CRM System   
             </span>
             {isCrmManagementOpen ? (
               <ChevronDown className="h-4 w-4 text-slate-700 flex-shrink-0" />
