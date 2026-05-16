@@ -24,6 +24,7 @@ import {
   Globe,
   Calendar1,
   UserPlus,
+  CloudUpload,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -48,6 +49,7 @@ const crmManagementItems = [
 ];
 
 const websiteManagementItems = [
+  { name: "Update Logo", href: "/update-logo", icon: CloudUpload },
   { name: "Hero section", href: "/hero", icon: InspectionPanel },
   { name: "Our Partners", href: "/our-partners", icon: Handshake },
   { name: "How it works", href: "/how-it-works", icon: FileText },  
