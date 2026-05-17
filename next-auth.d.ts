@@ -1,6 +1,8 @@
 /* eslint-disable */
 import NextAuth, { DefaultSession } from "next-auth";
 
+type SessionError = "AccessTokenExpired";
+
 declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
@@ -18,10 +20,12 @@ declare module "next-auth" {
 
     accessToken?: string;
     refreshToken?: string;
+    accessTokenExpires?: number;
     message?: string;
     success?: boolean;
     statusCode?: number;
     role?: string;
+    error?: SessionError;
   }
 
   interface User {
@@ -34,12 +38,14 @@ declare module "next-auth" {
     lastName?: string;
     accessToken?: string;
     refreshToken?: string;
+    accessTokenExpires?: number;
     profileImage?: string;
     accessRoutes?: string[]; 
     updatedAt?: string;
     message?: string;
     success?: boolean;
     statusCode?: number;
+    error?: SessionError;
   }
 }
 
@@ -54,11 +60,13 @@ declare module "next-auth/jwt" {
     lastName?: string;
     accessToken?: string;
     refreshToken?: string;
+    accessTokenExpires?: number;
     profileImage?: string;
     accessRoutes?: string[]; 
     updatedAt?: string;
     message?: string;
     success?: boolean;
     statusCode?: number;
+    error?: SessionError;
   }
 }

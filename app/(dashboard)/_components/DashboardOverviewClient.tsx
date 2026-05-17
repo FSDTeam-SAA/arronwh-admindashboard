@@ -113,6 +113,7 @@ function StatCardSkeleton() {
 export default function DashboardOverviewClient() {
   const { data: session, status: sessionStatus } = useSession()
   const token = session?.accessToken
+  console.log(token)
 
   const dashboardQuery = useQuery<DashboardApiResponse>({
     queryKey: ['dashboard-overview', token],
