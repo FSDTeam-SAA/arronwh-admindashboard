@@ -3,6 +3,31 @@
 import CredentialsProvider from "next-auth/providers/credentials";
 import type { AuthOptions } from "next-auth";
 
+const parseAccessTokenExpiry = (accessToken?: string): number | undefined => {
+  if (!accessToken) return undefined;
+
+  const parts = accessToken.split(".");
+  if (parts.length !== 3) return undefined;
+
+  try {
+    const payload = parts[1]
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(Math.ceil(parts[1].length / 4) * 4, "=");
+    const decoded = JSON.parse(
+      Buffer.from(payload, "base64").toString("utf-8")
+    ) as { exp?: number };
+
+    if (typeof decoded.exp !== "number") return undefined;
+    return decoded.exp * 1000;
+  } catch {
+    return undefined;
+  }
+};
+
+const isAccessTokenExpired = (expiresAt?: number): boolean =>
+  typeof expiresAt === "number" && Date.now() >= expiresAt;
+
 export interface LoginResponse {
   status?: boolean;
   success?: boolean;
@@ -51,8 +76,6 @@ export const authOptions: AuthOptions = {
 
         const user = data.data.user;
 
-    
-
         const firstName = user.firstName ?? "";
         const lastName = user.lastName ?? "";
         const fullName =
@@ -96,7 +119,14 @@ export const authOptions: AuthOptions = {
         token.accessRoutes = user.accessRoutes ?? [];
         token.message = user.message;
         token.success = user.success;
+        token.accessTokenExpires = parseAccessTokenExpiry(user.accessToken);
+        token.error = undefined;
       }
+
+      if (isAccessTokenExpired(token.accessTokenExpires)) {
+        token.error = "AccessTokenExpired";
+      }
+
       return token;
     },
 
@@ -115,8 +145,13 @@ export const authOptions: AuthOptions = {
       };
       session.accessToken = token.accessToken;
       session.refreshToken = token.refreshToken;
+      session.accessTokenExpires =
+        typeof token.accessTokenExpires === "number"
+          ? token.accessTokenExpires
+          : undefined;
       session.message = token.message;
       session.success = token.success;
+      session.error = token.error;
       return session;
     },
   },
