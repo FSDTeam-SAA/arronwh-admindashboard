@@ -25,6 +25,7 @@ import {
   Calendar1,
   UserPlus,
   CloudUpload,
+  FileQuestionMark,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -36,7 +37,11 @@ const topNavigation = [
 
 const navigation = [
   { name: "Products Management", href: "/products", icon: Wrench },
-  { name: "Controls & Extras Management", href: "/controls-extras", icon: Package },
+  {
+    name: "Controls & Extras Management",
+    href: "/controls-extras",
+    icon: Package,
+  },
   { name: "Subscriber Management", href: "/subscribers", icon: Podcast },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
@@ -44,7 +49,11 @@ const navigation = [
 const crmManagementItems = [
   { name: "Quote Management", href: "/quotes", icon: FileText },
   { name: "Booking Management", href: "/bookings", icon: CalendarCheck },
-  { name: "Menually Quote Management", href: "/menually-quotes", icon: Calendar1 },
+  {
+    name: "Menually Quote Management",
+    href: "/menually-quotes",
+    icon: Calendar1,
+  },
   { name: "Add New Customer", href: "/customers", icon: UserPlus },
 ];
 
@@ -52,16 +61,32 @@ const websiteManagementItems = [
   { name: "Update Logo", href: "/update-logo", icon: CloudUpload },
   { name: "Hero section", href: "/hero", icon: InspectionPanel },
   { name: "Our Partners", href: "/our-partners", icon: Handshake },
-  { name: "How it works", href: "/how-it-works", icon: FileText },  
+  { name: "How it works", href: "/how-it-works", icon: FileText },
   { name: "Promise Section", href: "/promise", icon: HandFist },
 
- { name: "About Hero section", href: "/about-hero", icon: InspectionPanel },
- { name: "About Our Values section", href: "/about-our-values", icon: FileText },
+  { name: "About Hero section", href: "/about-hero", icon: InspectionPanel },
+  {
+    name: "About Our Values section",
+    href: "/about-our-values",
+    icon: FileText,
+  },
 
   { name: "Privacy Policy", href: "/privacy-policy", icon: ReceiptText },
   { name: "Terms & Conditions", href: "/terms-conditions", icon: Handshake },
   { name: "FAQ Management", href: "/faq", icon: HelpCircle },
+  {
+    name: "Newsletter Management",
+    href: "/newsletter-management",
+    icon: HelpCircle,
+  },
+  {
+    name: "Raise an issue",
+    href: "/raise-an-issue",
+    icon: FileQuestionMark ,
+  },
 ];
+
+
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -115,7 +140,6 @@ export function Sidebar() {
 
   return (
     <>
-    
       {!isMobileMenuOpen && (
         <button
           onClick={toggleMobileMenu}
@@ -155,7 +179,6 @@ export function Sidebar() {
               className="object-contain w-full h-full"
             />
           </div>
-      
 
           {/* Close Button - mobile only */}
           {isMobileMenuOpen && (
@@ -229,7 +252,7 @@ export function Sidebar() {
                 isCrmManagementActive ? "text-slate-900" : "text-slate-800",
               )}
             >
-              CRM System   
+              CRM System
             </span>
             {isCrmManagementOpen ? (
               <ChevronDown className="h-4 w-4 text-slate-700 flex-shrink-0" />
@@ -393,7 +416,9 @@ export function Sidebar() {
             onClick={() => setIsLogoutOpen(true)}
             className="w-full flex items-center justify-center gap-3 rounded-[6px] border border-red-500 px-4 py-2.5 text-sm font-semibold text-red-500 transition hover:bg-red-50"
           >
-            <span><LogOut className="h-4 w-4" /></span>
+            <span>
+              <LogOut className="h-4 w-4" />
+            </span>
             Log out
           </button>
         </div>
