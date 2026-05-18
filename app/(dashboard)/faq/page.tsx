@@ -47,7 +47,6 @@ type FAQItem = {
 export default function FAQManagementPage() {
   const { data: session } = useSession();
   const token = session?.accessToken;
-  const [localFaqs, setLocalFaqs] = useState<FAQItem[]>([]);
   const [openFaqIds, setOpenFaqIds] = useState<Set<string>>(new Set());
   const [removedFaqIds, setRemovedFaqIds] = useState<Set<string>>(new Set());
   const [openAddModal, setOpenAddModal] = useState(false);
@@ -87,10 +86,8 @@ export default function FAQManagementPage() {
   }, [faqQuery.data]);
 
   const faqs = useMemo(() => {
-    return [...localFaqs, ...apiFaqs].filter(
-      (item) => !removedFaqIds.has(item.id)
-    );
-  }, [apiFaqs, localFaqs, removedFaqIds]);
+    return apiFaqs.filter((item) => !removedFaqIds.has(item.id));
+  }, [apiFaqs, removedFaqIds]);
 
   useEffect(() => {
     if (apiFaqs.length > 0 && openFaqIds.size === 0) {
@@ -165,15 +162,6 @@ export default function FAQManagementPage() {
 
   const handleConfirmDelete = () => {
     if (!deleteTarget) return;
-    if (deleteTarget.id.startsWith("local-")) {
-      setLocalFaqs((prev) =>
-        prev.filter((item) => item.id !== deleteTarget.id)
-      );
-      toast.success("FAQ deleted successfully.");
-      setOpenDeleteModal(false);
-      setDeleteTarget(null);
-      return;
-    }
     deleteFaqMutation.mutate(deleteTarget.id);
   };
 
@@ -188,11 +176,6 @@ export default function FAQManagementPage() {
   };
 
   const handleEditUpdated = (updated: FAQItem) => {
-    if (updated.id.startsWith("local-")) {
-      setLocalFaqs((prev) =>
-        prev.map((item) => (item.id === updated.id ? updated : item))
-      );
-    }
     setOpenFaqIds((prev) => {
       const next = new Set(prev);
       next.add(updated.id);
@@ -200,15 +183,9 @@ export default function FAQManagementPage() {
     });
   };
 
-  const handleAddFaq = (question: string, answer: string) => {
-    const newFaq: FAQItem = {
-      id: `local-${Date.now()}`,
-      question,
-      answer,
-    };
-
-    setLocalFaqs((prev) => [newFaq, ...prev]);
-    setOpenFaqIds((prev) => new Set(prev).add(newFaq.id));
+  const handleAddFaq = (_question: string, _answer: string) => {
+    void _question;
+    void _answer;
   };
 
   return (
