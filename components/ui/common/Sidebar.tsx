@@ -25,6 +25,7 @@ import {
   Calendar1,
   UserPlus,
   CloudUpload,
+  FileQuestionMark,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -78,7 +79,14 @@ const websiteManagementItems = [
     href: "/newsletter-management",
     icon: HelpCircle,
   },
+  {
+    name: "Raise an issue",
+    href: "/raise-an-issue",
+    icon: FileQuestionMark ,
+  },
 ];
+
+
 
 export function Sidebar() {
   const pathname = usePathname();

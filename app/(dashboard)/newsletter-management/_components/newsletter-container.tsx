@@ -191,7 +191,7 @@ const NewsletterContainer = () => {
 
   return (
     <div className="w-full">
-      <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="mb-5 flex flex-col gap-4 md:flex-row items-center md:justify-between">
         <div>
           <h1 className="mt-3 text-[28px] font-bold leading-none text-[#2D3D4D]">
             Newsletter Management
@@ -205,7 +205,8 @@ const NewsletterContainer = () => {
           </div>
         </div>
 
-        <button
+        <div className='flex items-center gap-4'>
+            <button
           type="button"
           onClick={handleRefresh}
           disabled={isLoading}
@@ -214,6 +215,15 @@ const NewsletterContainer = () => {
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
+        {/* <button
+          type="button"
+          onClick={handleRefresh}
+          disabled={isLoading}
+          className="inline-flex h-[42px] items-center gap-2 rounded-[8px] border border-[#D5DCE3] bg-white px-4 text-sm font-medium text-[#2D3D4D] transition hover:bg-[#F7FAFC] disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          BroadCast
+        </button> */}
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-[12px] border border-[#E5E7EB] bg-white shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
