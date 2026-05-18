@@ -25,6 +25,43 @@ type BadgeOption = {
   label: string;
 };
 
+const normalizeBadges = (badges: unknown): string[] => {
+  const fromMaybeJsonArray = (value: string): string[] | null => {
+    const trimmed = value.trim();
+    if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) return null;
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (!Array.isArray(parsed)) return null;
+      return parsed
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean);
+    } catch {
+      return null;
+    }
+  };
+
+  if (typeof badges === "string") {
+    const parsed = fromMaybeJsonArray(badges);
+    if (parsed) return parsed;
+    const trimmed = badges.trim();
+    return trimmed ? [trimmed] : [];
+  }
+
+  if (!Array.isArray(badges)) return [];
+
+  const normalized = badges.flatMap((badge) => {
+    if (typeof badge !== "string") return [];
+    const parsed = fromMaybeJsonArray(badge);
+    if (parsed) return parsed;
+    const trimmed = badge.trim();
+    return trimmed ? [trimmed] : [];
+  });
+
+  return Array.from(new Set(normalized));
+};
+
 const badgeOptions: BadgeOption[] = [
   { id: "best-seller", label: "OUR BEST SELLER" },
   { id: "quiet-mark", label: "Quiet Mark" },
@@ -141,7 +178,7 @@ export function EditExtraModal({
           ? String(extra.discount)
           : ""
       );
-      const incomingBadges = extra.badges ?? [];
+      const incomingBadges = normalizeBadges(extra.badges);
       const presetBadgeLabels = new Set(
         badgeOptions.map((badge) => badge.label)
       );
@@ -280,13 +317,7 @@ export function EditExtraModal({
               <DialogTitle className="text-[24px] font-semibold text-[#2D3D4D] sm:text-[28px]">
                 {modalTitle}
               </DialogTitle>
-              <button
-                type="button"
-                onClick={() => onOpenChange(false)}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-[#CBD5E1] text-[#2D3D4D] transition hover:bg-[#F8FAFC]"
-              >
-                <CircleX className="h-5 w-5" />
-              </button>
+            
             </div>
 
             <div className="space-y-5">
