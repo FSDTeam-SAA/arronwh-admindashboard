@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
+import { SendQuoteEmailModal } from "../../quotes/_components/SendQuoteEmailModal";
 
 type QuizAnswer = {
   question: string;
@@ -50,6 +51,7 @@ type PersonalInfo = {
 };
 
 type Quote = {
+  _id?: string;
   productId?: QuoteSelectableItem | string | null;
   quizAnswers?: QuizAnswer[];
   personalInfo?: PersonalInfo;
@@ -294,6 +296,7 @@ export function BookingDetailsModal({
   const today = new Date();
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+  const [isSendEmailModalOpen, setIsSendEmailModalOpen] = useState(false);
 
   const { data: booking, isLoading, isError, error } = useQuery<
     BookingItem,
@@ -372,6 +375,12 @@ export function BookingDetailsModal({
     setSelectedMonth(month - 1);
   }, [open, bookingId, installDateKey, surveyDateKey]);
 
+  useEffect(() => {
+    if (!open) {
+      setIsSendEmailModalOpen(false);
+    }
+  }, [open, bookingId]);
+
   const paymentMethod = quote
     ? quote.payByCard
       ? "Pay by card"
@@ -380,6 +389,7 @@ export function BookingDetailsModal({
       : "Not specified"
     : "N/A";
   const whatsappNumber = getWhatsappNumber(quote?.personalInfo?.mobleNumber);
+  const quoteId = quote?._id ?? null;
 
   const handleWhatsappClick = () => {
     if (!whatsappNumber) return;
@@ -389,16 +399,17 @@ export function BookingDetailsModal({
   if (!bookingId) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogPortal>
-        <DialogOverlay className="bg-[#2D3D4DCC]" />
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogPortal>
+          <DialogOverlay className="bg-[#2D3D4DCC]" />
 
-        <DialogContent className="max-h-[92vh] !w-[1400px] max-w-[96vw] sm:max-w-[96vw] gap-0 overflow-hidden rounded-[14px] border-none bg-white p-0 shadow-[0_10px_30px_rgba(15,23,42,0.14)]">
-          <div className="flex items-center justify-between border-b border-[#EEF2F5] px-5 py-4">
-            <DialogTitle className="text-[28px] font-semibold text-[#2D3D4D]">
-              Booking Details
-            </DialogTitle>
-          </div>
+          <DialogContent className="max-h-[92vh] !w-[1400px] max-w-[96vw] sm:max-w-[96vw] gap-0 overflow-hidden rounded-[14px] border-none bg-white p-0 shadow-[0_10px_30px_rgba(15,23,42,0.14)]">
+            <div className="flex items-center justify-between border-b border-[#EEF2F5] px-5 py-4">
+              <DialogTitle className="text-[28px] font-semibold text-[#2D3D4D]">
+                Booking Details
+              </DialogTitle>
+            </div>
 
           {isLoading ? (
             <BookingDetailsSkeleton />
@@ -711,9 +722,13 @@ export function BookingDetailsModal({
               </div>
 
               <div className="mt-5 space-y-3">
-                <Button className="h-[48px] w-full rounded-[4px] bg-[#FFDE59] text-[16px] font-semibold text-[#2D3D4D] hover:bg-[#FBFF26]/95">
-                  Email quote via email
-                </Button>
+                  <Button
+                    className="h-[48px] w-full rounded-[4px] bg-[#FBFF26] text-[16px] font-semibold text-[#2D3D4D] hover:bg-[#FBFF26]/95"
+                    onClick={() => setIsSendEmailModalOpen(true)}
+                    disabled={!quoteId}
+                  >
+                    Send an email
+                  </Button>
 
                 <Button
                   className="h-[48px] w-full rounded-[4px] bg-[#00A56F] text-[16px] font-semibold text-white hover:bg-[#009562]"
@@ -725,8 +740,15 @@ export function BookingDetailsModal({
               </div>
             </div>
           )}
-        </DialogContent>
-      </DialogPortal>
-    </Dialog>
+          </DialogContent>
+        </DialogPortal>
+      </Dialog>
+
+      <SendQuoteEmailModal
+        open={isSendEmailModalOpen}
+        onOpenChange={setIsSendEmailModalOpen}
+        quoteId={quoteId}
+      />
+    </>
   );
 }
