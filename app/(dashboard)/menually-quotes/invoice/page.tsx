@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useManualQuoteStore } from '../_store/useManualQuoteStore';
@@ -48,7 +49,6 @@ type InvoicePayload = {
     numberOfExtra: number;
     price: number;
   }>;
-  vatRate?: number;
   status?: string;
   dueDate?: string;
   deliveryDate?: string;
@@ -85,12 +85,12 @@ const numberOrZero = (value: number) => {
 };
 
 const InvoicePage = () => {
+  const router = useRouter();
   const formData = useManualQuoteStore((state) => state.formData);
 
   const [boilers, setBoilers] = useState<BoilerItem[]>([createBoilerItem()]);
   const [controllers, setControllers] = useState<ControllerItem[]>([createControllerItem()]);
   const [extras, setExtras] = useState<ExtraItem[]>([createExtraItem()]);
-  const [vatRate] = useState(20);
   const [status] = useState('pending');
   const [dueDate] = useState('');
   const [deliveryDate] = useState('');
@@ -147,8 +147,7 @@ const InvoicePage = () => {
   }, [boilers, controllers, extras]);
   
 
-  const vatAmount = useMemo(() => subtotal * (Math.max(0, vatRate) / 100), [subtotal, vatRate]);
-  const grandTotal = useMemo(() => subtotal + vatAmount, [subtotal, vatAmount]);
+  const grandTotal = useMemo(() => subtotal, [subtotal]);
 
   if (!formData) {
     return (
@@ -231,7 +230,6 @@ const InvoicePage = () => {
       ...(normalizedBoilers.length > 0 ? { boilers: normalizedBoilers } : {}),
       ...(normalizedControllers.length > 0 ? { controllers: normalizedControllers } : {}),
       ...(normalizedExtras.length > 0 ? { extras: normalizedExtras } : {}),
-      ...(Number.isFinite(vatRate) ? { vatRate: Math.max(0, Number(vatRate) || 0) } : {}),
       ...(status.trim() ? { status: status.trim() } : {}),
       ...(dueDate ? { dueDate } : {}),
       ...(deliveryDate ? { deliveryDate } : {}),
@@ -256,6 +254,7 @@ const InvoicePage = () => {
       }
 
       toast.success(result?.message || 'Invoice created successfully.');
+      router.replace('/menually-quotes');
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Failed to create invoice.');
     } finally {

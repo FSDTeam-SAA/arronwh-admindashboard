@@ -6,8 +6,9 @@ import { redirect } from "next/navigation";
 
 async function layout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
+  const role = session?.user?.role?.toLowerCase();
 
-  if (!session?.accessToken) {
+  if (!session?.accessToken || role !== "admin") {
     redirect("/login");
   }
 

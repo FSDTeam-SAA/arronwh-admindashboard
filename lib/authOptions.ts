@@ -75,6 +75,12 @@ export const authOptions: AuthOptions = {
         }
 
         const user = data.data.user;
+        const normalizedRole =
+          typeof user.role === "string" ? user.role.toLowerCase() : "";
+
+        if (normalizedRole !== "admin") {
+          throw new Error("admin_only");
+        }
 
         const firstName = user.firstName ?? "";
         const lastName = user.lastName ?? "";
@@ -85,7 +91,7 @@ export const authOptions: AuthOptions = {
           id: user._id,
           userId: user._id,
           email: user.email,
-          role: user.role,
+          role: normalizedRole,
           firstName: user.firstName,
           lastName: user.lastName,
           name: fullName,
