@@ -122,6 +122,7 @@ export function EditControllerModal({
   const [isEditingBadges, setIsEditingBadges] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [imagesChanged, setImagesChanged] = useState(false);
   const queryClient = useQueryClient();
   const { data: session } = useSession();
   const token = session?.accessToken;
@@ -157,6 +158,7 @@ export function EditControllerModal({
     setIsEditingBadges(false);
     setFiles([]);
     setExistingImages([]);
+    setImagesChanged(false);
   };
 
   useEffect(() => {
@@ -191,6 +193,7 @@ export function EditControllerModal({
       setIsEditingBadges(false);
       setFiles([]);
       setExistingImages(controller.images ?? []);
+      setImagesChanged(false);
     }
   }, [open, controller]);
 
@@ -236,11 +239,18 @@ export function EditControllerModal({
     const nextFiles = Array.from(event.target.files ?? []);
     if (nextFiles.length === 0) return;
     setFiles((prev) => [...prev, ...nextFiles]);
+    setImagesChanged(true);
     event.target.value = "";
   };
 
   const handleRemoveImage = (index: number) => {
     setFiles((prev) => prev.filter((_, idx) => idx !== index));
+    setImagesChanged(true);
+  };
+
+  const handleRemoveExistingImage = (index: number) => {
+    setExistingImages((prev) => prev.filter((_, idx) => idx !== index));
+    setImagesChanged(true);
   };
 
   const updateControllerMutation = useMutation({
@@ -262,7 +272,35 @@ export function EditControllerModal({
       if (selectedBadges.length > 0) {
         formData.append("badges", JSON.stringify(selectedBadges));
       }
-      if (files.length > 0) {
+      const getFileNameFromUrl = (url: string, fallback: string) => {
+        const cleanUrl = url.split("?")[0];
+        const name = cleanUrl.split("/").pop();
+        return name && name.trim() ? name : fallback;
+      };
+
+      const convertImageUrlToFile = async (url: string, fallbackName: string) => {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Failed to keep existing image: ${url}`);
+        }
+        const blob = await response.blob();
+        const mimeType = blob.type || "image/jpeg";
+        const fileName = getFileNameFromUrl(url, fallbackName);
+        return new File([blob], fileName, { type: mimeType });
+      };
+
+      if (imagesChanged) {
+        const mergedImageFiles: File[] = [...files];
+        if (existingImages.length > 0) {
+          const existingImageFiles = await Promise.all(
+            existingImages.map((url, index) =>
+              convertImageUrlToFile(url, `existing-controller-image-${index + 1}.jpg`)
+            )
+          );
+          mergedImageFiles.push(...existingImageFiles);
+        }
+        mergedImageFiles.forEach((file) => formData.append("images", file));
+      } else if (files.length > 0) {
         files.forEach((file) => formData.append("images", file));
       }
 
@@ -315,7 +353,7 @@ export function EditControllerModal({
           <div className="max-h-[92vh] overflow-y-auto px-6 pb-6 pt-6 sm:px-8">
             <div className="mb-6 flex items-center justify-between">
               <DialogTitle className="text-[24px] font-semibold text-[#2D3D4D] sm:text-[28px]">
-                {modalTitle}
+                {modalTitle} 
               </DialogTitle>
             
             </div>
@@ -494,6 +532,13 @@ export function EditControllerModal({
                           sizes="52px"
                           className="object-cover"
                         />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveExistingImage(index)}
+                          className="absolute right-1 top-1 rounded-full bg-white/90 p-0.5 text-[#2D3D4D] shadow"
+                        >
+                          <CircleX className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     ))}
                   </div>

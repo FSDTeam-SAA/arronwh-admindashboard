@@ -595,11 +595,11 @@ export default function ServiceManagementPage() {
             </div>
 
             <div className="flex flex-col items-start gap-4 sm:items-end">
-              <div className="flex items-center gap-4">
+              {/* <div className="flex items-center gap-4">
                 <span className="inline-flex h-[40px] min-w-[140px] items-center justify-center rounded-[8px] bg-[#FBFF26] px-5 text-[15px] font-medium text-[#2D3D4D]">
                   Boiler Systems
                 </span>
-              </div>
+              </div> */}
 
               <Button
                 onClick={() => setOpenAddBoiler(true)}

@@ -222,6 +222,7 @@ export function EditBoilerModal({
   const [existingIncludedImages, setExistingIncludedImages] = useState<string[]>([]);
   const [existingFeatureLogos, setExistingFeatureLogos] = useState<string[]>([]);
   const [existingInstallationImages, setExistingInstallationImages] = useState<string[]>([]);
+  const [boilerImagesChanged, setBoilerImagesChanged] = useState(false);
 
   const queryClient = useQueryClient();
   const { data: session } = useSession();
@@ -318,6 +319,7 @@ export function EditBoilerModal({
     setExistingIncludedImages([]);
     setExistingFeatureLogos([]);
     setExistingInstallationImages([]);
+    setBoilerImagesChanged(false);
   };
 
   useEffect(() => {
@@ -406,6 +408,7 @@ export function EditBoilerModal({
     setFeatureImage(null);
     setIncludeImages([]);
     setStepGuideImages([]);
+    setBoilerImagesChanged(false);
   }, [open, product]);
 
   const updateProductMutation = useMutation({
@@ -435,7 +438,10 @@ export function EditBoilerModal({
       const boilerInstallationGuide = steps
         .map((step) => step.trim())
         .filter(Boolean)
-        .map((step) => ({ title: step }));
+        .map((step, index) => ({
+          title: step,
+          image: existingInstallationImages[index] || undefined,
+        }));
 
       const payload = {
         title: title.trim(),
@@ -451,15 +457,51 @@ export function EditBoilerModal({
         featureInformation: {
           featureTitle: featureTitle.trim(),
           featureDescription: featureDescription.trim(),
+          featureLogo: existingFeatureLogos.filter(Boolean),
         },
         boilerIncludedData: included.map((item) => item.trim()).filter(Boolean).join("\n"),
         alsoUseData: alsoUse.map((item) => item.trim()).filter(Boolean).join("\n"),
         boilerInstallationGuide,
+        images: existingImages.filter(Boolean),
+        includedImages: existingIncludedImages.filter(Boolean),
       };
 
       const formData = new FormData();
       formData.append("data", JSON.stringify(payload));
-      files.forEach((file) => formData.append("images", file));
+      const getFileNameFromUrl = (url: string, fallback: string) => {
+        const cleanUrl = url.split("?")[0];
+        const name = cleanUrl.split("/").pop();
+        return name && name.trim() ? name : fallback;
+      };
+
+      const convertImageUrlToFile = async (url: string, fallbackName: string) => {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Failed to keep existing image: ${url}`);
+        }
+        const blob = await response.blob();
+        const mimeType = blob.type || "image/jpeg";
+        const fileName = getFileNameFromUrl(url, fallbackName);
+        return new File([blob], fileName, { type: mimeType });
+      };
+
+      if (boilerImagesChanged) {
+        const mergedImageFiles: File[] = [...files];
+        const keptExistingImages = existingImages.filter(Boolean);
+
+        if (keptExistingImages.length > 0) {
+          const keptExistingImageFiles = await Promise.all(
+            keptExistingImages.map((url, index) =>
+              convertImageUrlToFile(url, `existing-image-${index + 1}.jpg`)
+            )
+          );
+          mergedImageFiles.push(...keptExistingImageFiles);
+        }
+
+        mergedImageFiles.forEach((file) => formData.append("images", file));
+      } else {
+        files.forEach((file) => formData.append("images", file));
+      }
       includeImages.forEach((file) => formData.append("includedImages", file));
       stepGuideImages.forEach((file) =>
         formData.append("installationGuideImages", file)
@@ -573,17 +615,45 @@ export function EditBoilerModal({
     const nextFiles = Array.from(event.target.files ?? []);
     if (nextFiles.length === 0) return;
     setFiles((prev) => [...prev, ...nextFiles]);
+    setBoilerImagesChanged(true);
     event.target.value = "";
   };
 
-  const handleSingleFileChange =
-    (setter: (file: File | null) => void) =>
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-      setter(file);
-      event.target.value = "";
-    };
+  const handleReplaceProductLogo = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setProductLogo(file);
+    setExistingFeatureLogos((prev) => {
+      const next = [...prev];
+      next[0] = "";
+      return next;
+    });
+    event.target.value = "";
+  };
+
+  const handleReplaceAnotherLogo = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setAnotherLogo(file);
+    setExistingFeatureLogos((prev) => {
+      const next = [...prev];
+      next[1] = "";
+      return next;
+    });
+    event.target.value = "";
+  };
+
+  const handleReplaceFeatureImage = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setFeatureImage(file);
+    setExistingFeatureLogos((prev) => {
+      const next = [...prev];
+      next[2] = "";
+      return next;
+    });
+    event.target.value = "";
+  };
 
   const handleMultiFileChange =
     (setter: (value: File[] | ((prev: File[]) => File[])) => void) =>
@@ -604,6 +674,28 @@ export function EditBoilerModal({
 
   const handleRemoveImage = (index: number) => {
     setFiles((prev) => prev.filter((_, idx) => idx !== index));
+    setBoilerImagesChanged(true);
+  };
+
+  const handleRemoveExistingImage = (index: number) => {
+    setExistingImages((prev) => prev.filter((_, idx) => idx !== index));
+    setBoilerImagesChanged(true);
+  };
+
+  const handleRemoveExistingIncludeImage = (index: number) => {
+    setExistingIncludedImages((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleRemoveExistingStepImage = (index: number) => {
+    setExistingInstallationImages((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleRemoveExistingFeatureLogo = (index: number) => {
+    setExistingFeatureLogos((prev) => {
+      const next = [...prev];
+      next[index] = "";
+      return next;
+    });
   };
 
   if (!product) return null;
@@ -773,7 +865,11 @@ export function EditBoilerModal({
 
                 <div className="mb-3 flex flex-wrap gap-3">
                   {existingImages.map((url, index) => (
-                    <PreviewThumb key={`existing-${url}-${index}`} src={url} />
+                    <PreviewThumb
+                      key={`existing-${url}-${index}`}
+                      src={url}
+                      onRemove={() => handleRemoveExistingImage(index)}
+                    />
                   ))}
                   {previewUrls.map((url, index) => (
                     <PreviewThumb
@@ -903,12 +999,15 @@ export function EditBoilerModal({
                         onRemove={() => setProductLogo(null)}
                       />
                     ) : existingFeatureLogos[0] ? (
-                      <PreviewThumb src={existingFeatureLogos[0]} />
+                      <PreviewThumb
+                        src={existingFeatureLogos[0]}
+                        onRemove={() => handleRemoveExistingFeatureLogo(0)}
+                      />
                     ) : null}
                   </div>
                   <UploadBox
                     id="product-logo-upload"
-                    onChange={handleSingleFileChange(setProductLogo)}
+                    onChange={handleReplaceProductLogo}
                   />
                 </div>
 
@@ -921,12 +1020,15 @@ export function EditBoilerModal({
                         onRemove={() => setAnotherLogo(null)}
                       />
                     ) : existingFeatureLogos[1] ? (
-                      <PreviewThumb src={existingFeatureLogos[1]} />
+                      <PreviewThumb
+                        src={existingFeatureLogos[1]}
+                        onRemove={() => handleRemoveExistingFeatureLogo(1)}
+                      />
                     ) : null}
                   </div>
                   <UploadBox
                     id="another-logo-upload"
-                    onChange={handleSingleFileChange(setAnotherLogo)}
+                    onChange={handleReplaceAnotherLogo}
                   />
                 </div>
 
@@ -939,12 +1041,15 @@ export function EditBoilerModal({
                         onRemove={() => setFeatureImage(null)}
                       />
                     ) : existingFeatureLogos[2] ? (
-                      <PreviewThumb src={existingFeatureLogos[2]} />
+                      <PreviewThumb
+                        src={existingFeatureLogos[2]}
+                        onRemove={() => handleRemoveExistingFeatureLogo(2)}
+                      />
                     ) : null}
                   </div>
                   <UploadBox
                     id="boiler-feature-upload"
-                    onChange={handleSingleFileChange(setFeatureImage)}
+                    onChange={handleReplaceFeatureImage}
                   />
                 </div>
               </div>
@@ -1057,7 +1162,11 @@ export function EditBoilerModal({
 
                 <div className="mb-3 flex flex-wrap gap-3">
                   {existingIncludedImages.map((url, index) => (
-                    <PreviewThumb key={`existing-include-${url}-${index}`} src={url} />
+                    <PreviewThumb
+                      key={`existing-include-${url}-${index}`}
+                      src={url}
+                      onRemove={() => handleRemoveExistingIncludeImage(index)}
+                    />
                   ))}
                   {includeImageUrls.map((url, index) => (
                     <PreviewThumb
@@ -1133,7 +1242,11 @@ export function EditBoilerModal({
 
                   <div className="mb-3 flex flex-wrap gap-3">
                     {existingInstallationImages.map((url, index) => (
-                      <PreviewThumb key={`existing-step-${url}-${index}`} src={url} />
+                      <PreviewThumb
+                        key={`existing-step-${url}-${index}`}
+                        src={url}
+                        onRemove={() => handleRemoveExistingStepImage(index)}
+                      />
                     ))}
                     {stepGuideImageUrls.map((url, index) => (
                       <PreviewThumb
