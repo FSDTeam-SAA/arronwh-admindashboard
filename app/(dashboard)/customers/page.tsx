@@ -857,9 +857,6 @@ export default function CustomersPage() {
                       Role
                     </TableHead>
                     <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">
-                      Gender
-                    </TableHead>
-                    <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">
                       Location
                     </TableHead>
                     <TableHead className="h-[42px] px-4 text-[16px] font-medium text-[#00A56F]">
@@ -878,7 +875,7 @@ export default function CustomersPage() {
                   {isLoading ? (
                     Array.from({ length: 6 }).map((_, index) => (
                       <TableRow key={`skeleton-${index}`} className="border-b border-[#EDF1F4]">
-                        {Array.from({ length: 9 }).map((__, cellIndex) => (
+                        {Array.from({ length: 8 }).map((__, cellIndex) => (
                           <TableCell key={`cell-${cellIndex}`} className="px-4 py-[14px]">
                             <div className="h-5 w-full animate-pulse rounded-md bg-gray-200" />
                           </TableCell>
@@ -887,15 +884,17 @@ export default function CustomersPage() {
                     ))
                   ) : customers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="h-32 text-center text-[#64748B]">
+                      <TableCell colSpan={8} className="h-32 text-center text-[#64748B]">
                         No customers found
                       </TableCell>
                     </TableRow>
                   ) : (
                     customers.map((customer) => {
-                      const location = [customer.city, customer.country]
-                        .filter((item): item is string => !!item && item.trim().length > 0)
-                        .join(', ');
+                      const location =
+                        (typeof customer.address === 'string' && customer.address.trim()) ||
+                        [customer.city, customer.country]
+                          .filter((item): item is string => !!item && item.trim().length > 0)
+                          .join(', ');
 
                       return (
                         <TableRow
@@ -913,9 +912,6 @@ export default function CustomersPage() {
                           </TableCell>
                           <TableCell className="px-4 py-[14px] text-[15px] font-medium text-[#2D3D4D]">
                             {customer.role || 'N/A'}
-                          </TableCell>
-                          <TableCell className="px-4 py-[14px] text-[15px] font-medium capitalize text-[#2D3D4D]">
-                            {customer.gender || 'N/A'}
                           </TableCell>
                           <TableCell className="px-4 py-[14px] text-[15px] font-medium text-[#2D3D4D]">
                             <p className="max-w-[200px] truncate" title={location || 'N/A'}>

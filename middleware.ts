@@ -56,25 +56,27 @@ export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
   const accessToken =
     typeof token?.accessToken === "string" ? token.accessToken : undefined;
+  const role = typeof token?.role === "string" ? token.role.toLowerCase() : "";
   const accessTokenExpires =
     typeof token?.accessTokenExpires === "number"
       ? token.accessTokenExpires
       : parseAccessTokenExpiry(accessToken);
 
   const hasSession = Boolean(accessToken);
+  const isAdmin = role === "admin";
   const tokenExpired = isExpired(accessTokenExpires);
 
-  if (isAuthPath && hasSession && !tokenExpired) {
+  if (isAuthPath && hasSession && !tokenExpired && isAdmin) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  if (isAuthPath && hasSession && tokenExpired) {
+  if (isAuthPath && hasSession && (tokenExpired || !isAdmin)) {
     const response = NextResponse.next();
     clearAuthCookies(response);
     return response;
   }
 
-  if (!isAuthPath && (!hasSession || tokenExpired)) {
+  if (!isAuthPath && (!hasSession || tokenExpired || !isAdmin)) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", `${pathname}${search}`);
 
