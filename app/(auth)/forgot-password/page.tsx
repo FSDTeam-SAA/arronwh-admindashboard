@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useAuthLogo } from "@/lib/use-auth-logo";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { logoSrc, isLogoLoading, handleLogoError } = useAuthLogo();
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -64,13 +66,18 @@ export default function ForgotPasswordPage() {
           <div className="flex flex-col items-center">
             {/* Logo */}
             <div className="mb-4 flex flex-col items-center">
-              <Image
-                src="/logo.png"
-                alt="Yolo Heat"
-                width={1000}
-                height={100}
-                className="mb-3 h-[133px] w-auto object-contain"
-              />
+              {isLogoLoading ? (
+                <div className="mb-3 h-[133px] w-[260px] animate-pulse rounded-md bg-slate-200" />
+              ) : (
+                <Image
+                  src={logoSrc}
+                  alt="Yolo Heat"
+                  width={1000}
+                  height={100}
+                  className="mb-3 h-[133px] w-auto object-contain"
+                  onError={handleLogoError}
+                />
+              )}
             </div>
 
             <h2 className="mb-6 text-center text-[24px] font-semibold text-[#2D3D4DCC]">

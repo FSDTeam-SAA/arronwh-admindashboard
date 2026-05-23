@@ -26,6 +26,7 @@ import {
   UserPlus,
   CloudUpload,
   FileQuestionMark,
+  MessageSquareQuote,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -74,6 +75,7 @@ const websiteManagementItems = [
   { name: "Privacy Policy", href: "/privacy-policy", icon: ReceiptText },
   { name: "Terms & Conditions", href: "/terms-conditions", icon: Handshake },
   { name: "FAQ Management", href: "/faq", icon: HelpCircle },
+  { name: "Reviews Management", href: "/reviews", icon: MessageSquareQuote },
   {
     name: "Refer friends",
     href: "/refer-friends",
