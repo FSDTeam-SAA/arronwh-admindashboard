@@ -26,7 +26,12 @@ const getLogoEndpoint = () => {
   return base.endsWith("/api/v1") ? `${base}/logo` : `${base}/api/v1/logo`;
 };
 
-export const useAuthLogo = () => {
+type UseAuthLogoOptions = {
+  fallbackSrc?: string;
+};
+
+export const useAuthLogo = (options?: UseAuthLogoOptions) => {
+  const fallbackSrc = options?.fallbackSrc ?? FALLBACK_LOGO_SRC;
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
   const [isLogoLoading, setIsLogoLoading] = useState(true);
 
@@ -37,7 +42,7 @@ export const useAuthLogo = () => {
       try {
         const response = await fetch(getLogoEndpoint());
         if (!response.ok) {
-          if (isMounted) setLogoSrc(FALLBACK_LOGO_SRC);
+          if (isMounted) setLogoSrc(fallbackSrc);
           return;
         }
 
@@ -49,11 +54,11 @@ export const useAuthLogo = () => {
           typeof logoItem?.image === "string" ? logoItem.image.trim() : "";
 
         if (isMounted) {
-          setLogoSrc(imageUrl || FALLBACK_LOGO_SRC);
+          setLogoSrc(imageUrl || fallbackSrc);
         }
       } catch (error) {
         console.error("Failed to load logo:", error);
-        if (isMounted) setLogoSrc(FALLBACK_LOGO_SRC);
+        if (isMounted) setLogoSrc(fallbackSrc);
       } finally {
         if (isMounted) setIsLogoLoading(false);
       }
@@ -64,15 +69,15 @@ export const useAuthLogo = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [fallbackSrc]);
 
   const handleLogoError = () => {
-    setLogoSrc(FALLBACK_LOGO_SRC);
+    setLogoSrc(fallbackSrc);
     setIsLogoLoading(false);
   };
 
   return {
-    logoSrc: logoSrc ?? FALLBACK_LOGO_SRC,
+    logoSrc: logoSrc ?? fallbackSrc,
     isLogoLoading,
     handleLogoError,
   };
