@@ -101,6 +101,21 @@ const websiteManagementItems = [
     href: "/engineer",
     icon: FileQuestionMark ,
   },
+    {
+    name: "Social",
+    href: "/social",
+    icon: FileQuestionMark ,
+  },
+    {
+    name: "Partnerships",
+    href: "/partnerships",
+    icon: FileQuestionMark ,
+  },
+    {
+    name: "Head Office",
+    href: "/head-office",
+    icon: FileQuestionMark ,
+  },
 
 ];
 
