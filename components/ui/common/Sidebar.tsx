@@ -75,8 +75,8 @@ const websiteManagementItems = [
   { name: "Terms & Conditions", href: "/terms-conditions", icon: Handshake },
   { name: "FAQ Management", href: "/faq", icon: HelpCircle },
   {
-    name: "Newsletter Management",
-    href: "/newsletter-management",
+    name: "Refer friends",
+    href: "/refer-friends",
     icon: HelpCircle,
   },
   {

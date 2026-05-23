@@ -1,32 +1,38 @@
-export type NewsletterItem = {
+export type ReferItem = {
   _id: string
+  referred_by: string
+  name: string
   email: string
+  phone: string
+  postcode: string
+  address: string
+  message: string
   createdAt?: string
   updatedAt?: string
   __v?: number
 }
 
-export type NewsletterMeta = {
+export type ReferMeta = {
   total?: number
   page?: number
   limit?: number
 }
 
-export type NewsletterListResponse = {
+export type ReferListResponse = {
   statusCode?: number
   success?: boolean
   status?: boolean
   message?: string
-  meta?: NewsletterMeta
-  data?: NewsletterItem[]
+  meta?: ReferMeta
+  data?: ReferItem[]
 }
 
-export type NewsletterDeleteResponse = {
+export type ReferDeleteResponse = {
   statusCode?: number
   success?: boolean
   status?: boolean
   message?: string
-  data?: NewsletterItem
+  data?: ReferItem
 }
 
 export const hasExplicitFailure = (
