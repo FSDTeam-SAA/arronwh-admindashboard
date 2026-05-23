@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, UploadCloud } from 'lucide-react';
+import { Trash2, UploadCloud, Plus } from 'lucide-react';
 import Image from 'next/image';
 
 type SocialLinkData = {
@@ -25,15 +25,6 @@ type SocialData = {
   backgroundColor: string;
   textColor: string;
   socialLink?: SocialLinkData[];
-};
-
-type SocialLinkState = {
-  id: string;
-  link: string;
-  iconUrl: string | null;
-  iconPublicId?: string;
-  iconFile: File | null;
-  previewUrl: string | null;
 };
 
 type SocialFormState = {
@@ -92,7 +83,9 @@ export default function SocialContainer() {
     textColor: '#ffffff',
   });
 
-  const [socialLinks, setSocialLinks] = useState<SocialLinkState[]>([]);
+  const [newLink, setNewLink] = useState('');
+  const [newIconFile, setNewIconFile] = useState<File | null>(null);
+  const [newPreviewUrl, setNewPreviewUrl] = useState<string | null>(null);
 
   const apiBase = useMemo(getApiBase, []);
   const socialEndpoint = useMemo(
@@ -104,7 +97,7 @@ export default function SocialContainer() {
     queryKey: ['social-data', token],
     enabled: Boolean(token),
     queryFn: async () => {
-      const response = await fetch(socialEndpoint, {
+      const response = await fetch(apiBase ? `${apiBase}/socialpartership` : `/socialpartership`, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
       const payload = await response.json().catch(() => null);
@@ -113,7 +106,10 @@ export default function SocialContainer() {
         throw new Error(getApiMessage(payload) ?? 'Failed to load social data.');
       }
 
-      return payload.data as SocialData;
+      // The GET endpoint returns an array, and the first item is the target social object
+      const dataArray = payload.data as SocialData[];
+      const socialInfo = dataArray.find(item => item._id === SOCIAL_ID) || dataArray[0];
+      return socialInfo;
     },
   });
 
@@ -125,34 +121,18 @@ export default function SocialContainer() {
         backgroundColor: socialQuery.data.backgroundColor || '#000000',
         textColor: socialQuery.data.textColor || '#ffffff',
       });
-
-      if (socialQuery.data.socialLink && Array.isArray(socialQuery.data.socialLink)) {
-        const initialLinks: SocialLinkState[] = socialQuery.data.socialLink.map((sl) => ({
-          id: sl._id || Math.random().toString(36).substring(7),
-          link: sl.link || '',
-          iconUrl: sl.icon || null,
-          iconPublicId: sl.iconPublicId,
-          iconFile: null,
-          previewUrl: null,
-        }));
-        setSocialLinks(initialLinks);
-      } else {
-        setSocialLinks([]);
-      }
     }
   }, [socialQuery.data]);
 
   useEffect(() => {
     return () => {
-      socialLinks.forEach(link => {
-        if (link.previewUrl && link.previewUrl.startsWith('blob:')) {
-          URL.revokeObjectURL(link.previewUrl);
-        }
-      });
+      if (newPreviewUrl && newPreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(newPreviewUrl);
+      }
     };
-  }, [socialLinks]);
+  }, [newPreviewUrl]);
 
-  const saveMutation = useMutation({
+  const saveInfoMutation = useMutation({
     mutationFn: async (payload: FormData) => {
       const response = await fetch(socialEndpoint, {
         method: 'PUT',
@@ -164,17 +144,71 @@ export default function SocialContainer() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok || hasExplicitFailure(result)) {
-        throw new Error(getApiMessage(result) ?? 'Failed to update social data.');
+        throw new Error(getApiMessage(result) ?? 'Failed to update social info.');
       }
 
       return result;
     },
     onSuccess: () => {
-      toast.success('Social data updated successfully.');
+      toast.success('Social info updated successfully.');
       queryClient.invalidateQueries({ queryKey: ['social-data', token] });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to save social data.');
+      toast.error(error instanceof Error ? error.message : 'Failed to save social info.');
+    },
+  });
+
+  const addLinkMutation = useMutation({
+    mutationFn: async (payload: FormData) => {
+      const response = await fetch(`${socialEndpoint}/social-link`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: payload,
+      });
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || hasExplicitFailure(result)) {
+        throw new Error(getApiMessage(result) ?? 'Failed to add social link.');
+      }
+
+      return result;
+    },
+    onSuccess: () => {
+      toast.success('Social link added successfully.');
+      setNewLink('');
+      setNewIconFile(null);
+      setNewPreviewUrl(null);
+      queryClient.invalidateQueries({ queryKey: ['social-data', token] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to add social link.');
+    },
+  });
+
+  const deleteLinkMutation = useMutation({
+    mutationFn: async (index: number) => {
+      const response = await fetch(`${socialEndpoint}/social-link/${index}`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || hasExplicitFailure(result)) {
+        throw new Error(getApiMessage(result) ?? 'Failed to remove social link.');
+      }
+
+      return result;
+    },
+    onSuccess: () => {
+      toast.success('Social link removed successfully.');
+      queryClient.invalidateQueries({ queryKey: ['social-data', token] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to remove social link.');
     },
   });
 
@@ -186,50 +220,7 @@ export default function SocialContainer() {
     }));
   };
 
-  const handleAddSocialLink = () => {
-    setSocialLinks(prev => [
-      ...prev,
-      {
-        id: Math.random().toString(36).substring(7),
-        link: '',
-        iconUrl: null,
-        iconFile: null,
-        previewUrl: null
-      }
-    ]);
-  };
-
-  const handleRemoveSocialLink = (id: string) => {
-    setSocialLinks(prev => {
-      const linkToRemove = prev.find(l => l.id === id);
-      if (linkToRemove?.previewUrl && linkToRemove.previewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(linkToRemove.previewUrl);
-      }
-      return prev.filter(l => l.id !== id);
-    });
-  };
-
-  const handleSocialLinkChange = (id: string, value: string) => {
-    setSocialLinks(prev => prev.map(l => l.id === id ? { ...l, link: value } : l));
-  };
-
-  const handleSocialLinkFileChange = (id: string, file: File | null) => {
-    setSocialLinks(prev => prev.map(l => {
-      if (l.id === id) {
-        if (l.previewUrl && l.previewUrl.startsWith('blob:')) {
-          URL.revokeObjectURL(l.previewUrl);
-        }
-        return {
-          ...l,
-          iconFile: file,
-          previewUrl: file ? URL.createObjectURL(file) : null
-        };
-      }
-      return l;
-    }));
-  };
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleInfoSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!formData.title || !formData.subTitle) {
       toast.error('Please fill in both the title and subTitle.');
@@ -242,25 +233,27 @@ export default function SocialContainer() {
     payload.append('backgroundColor', formData.backgroundColor);
     payload.append('textColor', formData.textColor);
 
-    // Depending on backend implementation, social links arrays can be passed in different ways:
-    // 1. JSON stringified:
-    // payload.append('socialLinkData', JSON.stringify(socialLinks.map(l => ({ link: l.link, icon: l.iconUrl }))));
-    // 2. Form array format:
-    socialLinks.forEach((sl, index) => {
-      payload.append(`socialLink[${index}][link]`, sl.link);
-      if (sl.iconUrl && !sl.iconFile) {
-        payload.append(`socialLink[${index}][icon]`, sl.iconUrl);
-        if (sl.iconPublicId) {
-          payload.append(`socialLink[${index}][iconPublicId]`, sl.iconPublicId);
-        }
-      }
-      if (sl.iconFile) {
-        // Use [icon] if multer handles nested arrays, or custom logic per backend
-        payload.append(`socialLink[${index}][icon]`, sl.iconFile);
-      }
-    });
+    saveInfoMutation.mutate(payload);
+  };
 
-    saveMutation.mutate(payload);
+  const handleNewIconChange = (file: File | null) => {
+    if (newPreviewUrl && newPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(newPreviewUrl);
+    }
+    setNewIconFile(file);
+    setNewPreviewUrl(file ? URL.createObjectURL(file) : null);
+  };
+
+  const handleAddLink = () => {
+    if (!newLink || !newIconFile) {
+      toast.error('Please provide both a link and an icon image.');
+      return;
+    }
+    const payload = new FormData();
+    payload.append('link', newLink);
+    payload.append('icon', newIconFile);
+
+    addLinkMutation.mutate(payload);
   };
 
   if (status === 'unauthenticated') {
@@ -275,6 +268,7 @@ export default function SocialContainer() {
     return (
       <div className="space-y-6">
         <div className="h-64 animate-pulse rounded-3xl bg-slate-200" />
+        <div className="h-64 animate-pulse rounded-3xl bg-slate-200" />
       </div>
     );
   }
@@ -287,16 +281,19 @@ export default function SocialContainer() {
     );
   }
 
+  const existingLinks = socialQuery.data?.socialLink || [];
+
   return (
     <div className="space-y-6 pb-10">
       <div className="w-full">
-        <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
+        {/* Basic Information Section */}
+        <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm mb-6">
           <div className="mb-5">
             <h2 className="text-xl font-semibold text-[#0F172A]">Social Information</h2>
-            <p className="text-sm text-[#64748B] mt-1">Manage the social and partnership information displayed on the website.</p>
+            <p className="text-sm text-[#64748B] mt-1">Manage the core social and partnership information.</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleInfoSubmit} className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="title">Title</Label>
@@ -365,105 +362,138 @@ export default function SocialContainer() {
               </div>
             </div>
 
-            <div className="mt-8">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-[#0F172A]">Social Links</h3>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleAddSocialLink}
-                  className="h-9 gap-2 border-[#E2E8F0] text-[#0F172A]"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Link
-                </Button>
-              </div>
-
-              {socialLinks.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] py-8 text-center text-sm text-[#64748B]">
-                  No social links added yet. Click &ldquo;Add Link&ldquo; to get started.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {socialLinks.map((link) => {
-                    const previewImage = link.previewUrl || link.iconUrl;
-                    const safePreviewImage = isValidImageSrc(previewImage) ? previewImage : '';
-                    const fileInputId = `social-icon-${link.id}`;
-
-                    return (
-                      <div key={link.id} className="relative flex items-start gap-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-                        <div className="flex-1 space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor={`link-${link.id}`}>Social Media Link</Label>
-                            <Input
-                              id={`link-${link.id}`}
-                              value={link.link}
-                              onChange={(e) => handleSocialLinkChange(link.id, e.target.value)}
-                              placeholder="https://facebook.com/..."
-                              className="h-10 bg-white"
-                            />
-                          </div>
-
-                          <div className="space-y-3">
-                            <Label>Icon Image</Label>
-                            <div className="flex items-center gap-4">
-                              <input
-                                id={fileInputId}
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => handleSocialLinkFileChange(link.id, e.target.files?.[0] ?? null)}
-                                className="hidden"
-                              />
-                              <label
-                                htmlFor={fileInputId}
-                                className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-[#CBD5E1] bg-white px-3 py-2 text-sm transition hover:bg-gray-50"
-                              >
-                                <UploadCloud className="h-4 w-4 text-[#0E7490]" />
-                                Choose Image
-                              </label>
-
-                              {safePreviewImage ? (
-                                <div className="relative h-12 w-12 overflow-hidden rounded-lg border border-[#E2E8F0] bg-white p-1">
-                                  <Image
-                                    src={safePreviewImage}
-                                    alt="Icon preview"
-                                    fill
-                                    className="object-contain p-1"
-                                  />
-                                </div>
-                              ) : (
-                                <span className="text-xs text-[#64748B]">No icon selected</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() => handleRemoveSocialLink(link.id)}
-                          className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Remove Link</span>
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
             <div className="flex gap-3 pt-6">
               <Button
                 type="submit"
-                disabled={saveMutation.isPending}
+                disabled={saveInfoMutation.isPending}
                 className="h-11 bg-[#FBFF26] px-8 font-semibold text-[#2D3D4D] hover:bg-[#FBFF26]/95 transition-colors"
               >
-                {saveMutation.isPending ? 'Saving...' : 'Update Social Information'}
+                {saveInfoMutation.isPending ? 'Saving...' : 'Update Information'}
               </Button>
             </div>
           </form>
+        </section>
+
+        {/* Social Links Section */}
+        <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
+          <div className="mb-5">
+            <h2 className="text-xl font-semibold text-[#0F172A]">Social Links</h2>
+            <p className="text-sm text-[#64748B] mt-1">Manage individual social media links and their icons.</p>
+          </div>
+
+          <div className="space-y-6">
+            {existingLinks.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] py-8 text-center text-sm text-[#64748B]">
+                No social links added yet. Add a new link below.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {existingLinks.map((link, index) => {
+                  const safePreviewImage = isValidImageSrc(link.icon) ? link.icon : '';
+                  return (
+                    <div key={link._id || index} className="flex items-center justify-between rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                      <div className="flex items-center gap-4">
+                        {safePreviewImage ? (
+                          <div className="relative h-12 w-12 overflow-hidden rounded-lg border border-[#E2E8F0] bg-white p-1">
+                            <Image
+                              src={safePreviewImage}
+                              alt="Social Icon"
+                              fill
+                              className="object-contain p-1"
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-12 w-12 rounded-lg bg-gray-200" />
+                        )}
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-[#0F172A]">Link {index + 1}</span>
+                          <a href={link.link} target="_blank" rel="noreferrer" className="text-xs text-[#0E7490] hover:underline break-all line-clamp-1">
+                            {link.link}
+                          </a>
+                        </div>
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => deleteLinkMutation.mutate(index)}
+                        disabled={deleteLinkMutation.isPending}
+                        className="h-9 w-9 p-0 text-red-500 hover:bg-red-50 hover:text-red-600 shrink-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Remove Link</span>
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Add New Link Form */}
+            <div className="mt-8 rounded-xl border border-[#E2E8F0] bg-white p-5">
+              <h3 className="mb-4 text-sm font-semibold text-[#0F172A] flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Add New Social Link
+              </h3>
+              
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="new-link">Social Media Link</Label>
+                  <Input
+                    id="new-link"
+                    value={newLink}
+                    onChange={(e) => setNewLink(e.target.value)}
+                    placeholder="https://facebook.com/..."
+                    className="h-10"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <Label>Icon Image</Label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      id="new-icon"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleNewIconChange(e.target.files?.[0] ?? null)}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="new-icon"
+                      className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 py-2 text-sm transition hover:bg-gray-50 h-10"
+                    >
+                      <UploadCloud className="h-4 w-4 text-[#0E7490]" />
+                      Choose Image
+                    </label>
+
+                    {newPreviewUrl ? (
+                      <div className="relative h-10 w-10 overflow-hidden rounded-lg border border-[#E2E8F0] bg-white p-1 shrink-0">
+                        <Image
+                          src={newPreviewUrl}
+                          alt="Icon preview"
+                          fill
+                          className="object-contain p-1"
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-xs text-[#64748B]">No icon</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="md:col-span-2 pt-2">
+                  <Button
+                    type="button"
+                    onClick={handleAddLink}
+                    disabled={addLinkMutation.isPending}
+                    className="bg-[#0E7490] text-white hover:bg-[#0E7490]/90"
+                  >
+                    {addLinkMutation.isPending ? 'Adding...' : 'Add Link'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     </div>
