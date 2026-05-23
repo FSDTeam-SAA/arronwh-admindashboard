@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
+import { useAuthLogo } from "@/lib/use-auth-logo";
 
 export default function YoloHeatLogin() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function YoloHeatLogin() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { logoSrc, isLogoLoading, handleLogoError } = useAuthLogo();
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("savedEmail");
@@ -98,13 +100,18 @@ export default function YoloHeatLogin() {
           <div className="flex flex-col items-center">
             {/* Logo */}
             <div className="mb-4 flex flex-col items-center">
-              <Image
-                src="/logo.png"
-                alt="Yolo Heat"
-                width={1000}
-                height={100}
-                className="mb-3 h-[133px] w-auto object-contain"
-              />
+              {isLogoLoading ? (
+                <div className="mb-3 h-[133px] w-[260px] animate-pulse rounded-md bg-slate-200" />
+              ) : (
+                <Image
+                  src={logoSrc}
+                  alt="Yolo Heat"
+                  width={1000}
+                  height={100}
+                  className="mb-3 h-[133px] w-auto object-contain"
+                  onError={handleLogoError}
+                />
+              )}
             </div>
 
             <h2 className="mb-6 text-center text-[24px] font-semibold text-[#2D3D4DCC]">

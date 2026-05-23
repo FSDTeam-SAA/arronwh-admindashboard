@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuthLogo } from "@/lib/use-auth-logo";
 
 function ResetPasswordContent() {
   const REDIRECT_DELAY = 3;
@@ -20,6 +21,7 @@ function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
   const router = useRouter();
+  const { logoSrc, isLogoLoading, handleLogoError } = useAuthLogo();
 
   useEffect(() => {
     if (!showSuccess) return;
@@ -110,13 +112,18 @@ function ResetPasswordContent() {
           <div className="flex flex-col items-center">
             {/* Logo */}
             <div className="mb-4 flex flex-col items-center">
-              <Image
-                src="/logo.png"
-                alt="Yolo Heat"
-                width={1000}
-                height={100}
-                className="mb-3 h-[133px] w-auto object-contain"
-              />
+              {isLogoLoading ? (
+                <div className="mb-3 h-[133px] w-[260px] animate-pulse rounded-md bg-slate-200" />
+              ) : (
+                <Image
+                  src={logoSrc}
+                  alt="Yolo Heat"
+                  width={1000}
+                  height={100}
+                  className="mb-3 h-[133px] w-auto object-contain"
+                  onError={handleLogoError}
+                />
+              )}
             </div>
 
             <h2 className="mb-2 text-center text-[24px] font-semibold text-[#2D3D4DCC]">

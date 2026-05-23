@@ -6,6 +6,7 @@ import { CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuthLogo } from "@/lib/use-auth-logo";
 
 function OtpVerificationContent() {
   const OTP_LENGTH = 6;
@@ -15,6 +16,7 @@ function OtpVerificationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
+  const { logoSrc, isLogoLoading, handleLogoError } = useAuthLogo();
 
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -124,13 +126,18 @@ function OtpVerificationContent() {
           <div className="flex flex-col items-center">
             {/* Logo */}
             <div className="mb-4 flex flex-col items-center">
-              <Image
-                src="/logo.png"
-                alt="Yolo Heat"
-                width={1000}
-                height={100}
-                className="mb-3 h-[133px] w-auto object-contain"
-              />
+              {isLogoLoading ? (
+                <div className="mb-3 h-[133px] w-[260px] animate-pulse rounded-md bg-slate-200" />
+              ) : (
+                <Image
+                  src={logoSrc}
+                  alt="Yolo Heat"
+                  width={1000}
+                  height={100}
+                  className="mb-3 h-[133px] w-auto object-contain"
+                  onError={handleLogoError}
+                />
+              )}
             </div>
 
             <h2 className="mb-6 text-center text-[24px] font-semibold text-[#2D3D4DCC]">
