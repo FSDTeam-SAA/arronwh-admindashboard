@@ -31,6 +31,7 @@ import {
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { signOut } from "next-auth/react";
+import { useAuthLogo } from "@/lib/use-auth-logo";
 
 const topNavigation = [
   { name: "Dashboard Overview", href: "/", icon: LayoutDashboard },
@@ -131,6 +132,9 @@ export function Sidebar() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isCrmManagementOpen, setIsCrmManagementOpen] = useState(false);
   const [isWebsiteManagementOpen, setIsWebsiteManagementOpen] = useState(false);
+  const { logoSrc, isLogoLoading, handleLogoError } = useAuthLogo({
+    fallbackSrc: "/logo2.png",
+  });
 
   const isCrmManagementActive = crmManagementItems.some(
     (item) =>
@@ -206,13 +210,18 @@ export function Sidebar() {
         {/* Header with Logo */}
         <div className="flex flex-col items-center justify-center relative px-6 pt-6 pb-10">
           <div className="flex h-[100px] w-[220px] items-center justify-center">
-            <Image
-              src="/logo2.png"
-              alt="Logo"
-              width={1000}
-              height={1000}
-              className="object-contain w-full h-full"
-            />
+            {isLogoLoading ? (
+              <div className="h-full w-full animate-pulse rounded-md bg-slate-200" />
+            ) : (
+              <Image
+                src={logoSrc}
+                alt="Logo"
+                width={1000}
+                height={1000}
+                className="object-contain w-full h-full"
+                onError={handleLogoError}
+              />
+            )}
           </div>
 
           {/* Close Button - mobile only */}
