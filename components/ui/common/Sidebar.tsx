@@ -77,8 +77,8 @@ const websiteManagementItems = [
   { name: "FAQ Management", href: "/faq", icon: HelpCircle },
   { name: "Reviews Management", href: "/reviews", icon: MessageSquareQuote },
   {
-    name: "Newsletter Management",
-    href: "/newsletter-management",
+    name: "Refer friends",
+    href: "/refer-friends",
     icon: HelpCircle,
   },
   {
@@ -101,6 +101,21 @@ const websiteManagementItems = [
     {
     name: "Engineer",
     href: "/engineer",
+    icon: FileQuestionMark ,
+  },
+    {
+    name: "Social",
+    href: "/social",
+    icon: FileQuestionMark ,
+  },
+    {
+    name: "Partnerships",
+    href: "/partnerships",
+    icon: FileQuestionMark ,
+  },
+    {
+    name: "Head Office",
+    href: "/head-office",
     icon: FileQuestionMark ,
   },
 
