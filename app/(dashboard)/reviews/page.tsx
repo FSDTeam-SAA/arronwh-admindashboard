@@ -23,6 +23,7 @@ type ReviewApiItem = {
   location: string;
   review: string;
   rating: number;
+  video?: string;
   isActive?: boolean;
 };
 
@@ -36,6 +37,7 @@ type ReviewItem = {
   location: string;
   review: string;
   rating: number;
+  video?: string;
   isActive: boolean;
 };
 
@@ -53,7 +55,7 @@ export default function ReviewsManagementPage() {
     queryKey: ["reviews", token],
     queryFn: async () => {
       const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/+$/, "");
-      const response = await fetch(`${apiBase}/customersay?sortBy=createdAt&sortOrder=desc&limit=200&page=1`, {
+      const response = await fetch(`${apiBase}/review?sortBy=createdAt&sortOrder=desc&limit=200&page=1`, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
 
@@ -74,6 +76,7 @@ export default function ReviewsManagementPage() {
         location: item.location,
         review: item.review,
         rating: item.rating,
+        video: item.video,
         isActive: item.isActive !== false,
       })) ?? []
     );
@@ -82,7 +85,7 @@ export default function ReviewsManagementPage() {
   const deleteReviewMutation = useMutation({
     mutationFn: async (id: string) => {
       const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/+$/, "");
-      const response = await fetch(`${apiBase}/customersay/${id}`, {
+      const response = await fetch(`${apiBase}/review/${id}`, {
         method: "DELETE",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
@@ -141,7 +144,7 @@ export default function ReviewsManagementPage() {
             </Button>
           </div>
 
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             {reviewsQuery.isLoading &&
               Array.from({ length: 5 }).map((_, idx) => (
                 <div key={idx} className="rounded-[10px] bg-white p-5">
@@ -199,6 +202,14 @@ export default function ReviewsManagementPage() {
                       </div>
 
                       <p className="mt-3 text-[15px] leading-7 text-[#2D3D4D]">{item.review}</p>
+
+                      {item.video && (
+                        <video
+                          controls
+                          className="mt-4 h-[150px] w-full max-w-[420px] rounded-[10px] border border-[#E2E8F0] object-cover"
+                          src={item.video}
+                        />
+                      )}
                     </div>
 
                     <div className="flex items-center gap-3">
