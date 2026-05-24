@@ -85,41 +85,41 @@ const websiteManagementItems = [
   {
     name: "Raise an issue",
     href: "/raise-an-issue",
-    icon: FileQuestionMark ,
+    icon: FileQuestionMark,
   },
+];
 
-
+const contactUsSubItems = [
   {
     name: "Sales",
     href: "/sales",
-    icon: FileQuestionMark ,
+    icon: FileQuestionMark,
   },
-    {
+  {
     name: "Aftercare",
     href: "/aftercare",
-    icon: FileQuestionMark ,
+    icon: FileQuestionMark,
   },
-    {
+  {
     name: "Engineer",
     href: "/engineer",
-    icon: FileQuestionMark ,
+    icon: FileQuestionMark,
   },
-    {
+  {
     name: "Social",
     href: "/social",
-    icon: FileQuestionMark ,
+    icon: FileQuestionMark,
   },
-    {
+  {
     name: "Partnerships",
     href: "/partnerships",
-    icon: FileQuestionMark ,
+    icon: FileQuestionMark,
   },
-    {
+  {
     name: "Head Office",
     href: "/head-office",
-    icon: FileQuestionMark ,
+    icon: FileQuestionMark,
   },
-
 ];
 
 
@@ -132,6 +132,7 @@ export function Sidebar() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isCrmManagementOpen, setIsCrmManagementOpen] = useState(false);
   const [isWebsiteManagementOpen, setIsWebsiteManagementOpen] = useState(false);
+  const [isContactUsOpen, setIsContactUsOpen] = useState(false);
   const { logoSrc, isLogoLoading, handleLogoError } = useAuthLogo({
     fallbackSrc: "/logo2.png",
   });
@@ -146,6 +147,16 @@ export function Sidebar() {
     (item) =>
       pathname === item.href ||
       (item.href !== "/" && pathname.startsWith(item.href)),
+  ) || contactUsSubItems.some(
+    (item) =>
+      pathname === item.href ||
+      (item.href !== "/" && pathname.startsWith(item.href)),
+  ) || pathname === "/contact-us";
+
+  const isContactUsActive = pathname === "/contact-us" || contactUsSubItems.some(
+    (item) =>
+      pathname === item.href ||
+      (item.href !== "/" && pathname.startsWith(item.href)),
   );
 
   useEffect(() => {
@@ -156,7 +167,11 @@ export function Sidebar() {
     if (isWebsiteManagementActive) {
       setIsWebsiteManagementOpen(true);
     }
-  }, [isCrmManagementActive, isWebsiteManagementActive]);
+
+    if (isContactUsActive) {
+      setIsContactUsOpen(true);
+    }
+  }, [isCrmManagementActive, isWebsiteManagementActive, isContactUsActive]);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -413,6 +428,78 @@ export function Sidebar() {
                   </Link>
                 );
               })}
+
+              {/* Contact Us Dropdown */}
+              <button
+                type="button"
+                onClick={() => setIsContactUsOpen((prev) => !prev)}
+                className={cn(
+                  "flex w-full min-w-0 items-center justify-start gap-2 rounded-[4px] px-4 py-2 text-sm font-medium transition-all duration-200",
+                  isContactUsActive
+                    ? "bg-[#FBFF26] text-slate-900 shadow-[0_1px_0_rgba(0,0,0,0.04)]"
+                    : "text-slate-800 hover:bg-slate-100",
+                )}
+              >
+                <FileQuestionMark
+                  className={cn(
+                    "h-[24px] w-[16px] transition-colors duration-200 flex-shrink-0",
+                    isContactUsActive ? "text-slate-900" : "text-slate-700",
+                  )}
+                />
+                <span
+                  className={cn(
+                    "min-w-0 flex-1 truncate font-medium text-[15px] leading-[120%] text-left transition-colors duration-200",
+                    isContactUsActive ? "text-slate-900" : "text-slate-800",
+                  )}
+                >
+                  Contact Us
+                </span>
+                {isContactUsOpen ? (
+                  <ChevronDown className="h-4 w-4 text-slate-700 flex-shrink-0" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-slate-700 flex-shrink-0" />
+                )}
+              </button>
+
+              {isContactUsOpen && (
+                <div className="ml-4 flex flex-col gap-1">
+                  {contactUsSubItems.map((item) => {
+                    const isActive =
+                      pathname === item.href ||
+                      (item.href !== "/" && pathname.startsWith(item.href));
+
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={cn(
+                          "flex w-full min-w-0 items-center justify-start gap-2 rounded-[4px] px-4 py-2 text-sm font-medium transition-all duration-200",
+                          isActive
+                            ? "bg-[#FBFF26] text-slate-900 shadow-[0_1px_0_rgba(0,0,0,0.04)]"
+                            : "text-slate-800 hover:bg-slate-100",
+                        )}
+                      >
+                        <item.icon
+                          className={cn(
+                            "h-[20px] w-[14px] transition-colors duration-200 flex-shrink-0",
+                            isActive ? "text-slate-900" : "text-slate-700",
+                          )}
+                        />
+                        <span
+                          className={cn(
+                            "min-w-0 flex-1 truncate font-medium text-[14px] leading-[120%] transition-colors duration-200",
+                            isActive ? "text-slate-900" : "text-slate-800",
+                          )}
+                          title={item.name}
+                        >
+                          {item.name}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

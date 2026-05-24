@@ -63,6 +63,7 @@ export function EditReviewModal({
   const [isActive, setIsActive] = useState(true);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState("");
+  const [videoRemoved, setVideoRemoved] = useState(false);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
   const queryClient = useQueryClient();
   const { data: session } = useSession();
@@ -76,6 +77,7 @@ export function EditReviewModal({
       setRating(String(reviewItem.rating));
       setIsActive(reviewItem.isActive);
       setVideoFile(null);
+      setVideoRemoved(false);
       setVideoPreviewUrl(reviewItem.video ?? "");
     }
   }, [reviewItem]);
@@ -84,6 +86,7 @@ export function EditReviewModal({
     if (!videoFile) return;
     const url = URL.createObjectURL(videoFile);
     setVideoPreviewUrl(url);
+    setVideoRemoved(false); // new file selected — undo any removal
     return () => URL.revokeObjectURL(url);
   }, [videoFile]);
 
@@ -98,8 +101,12 @@ export function EditReviewModal({
       formData.append("review", review.trim());
       formData.append("rating", String(Number(rating)));
       formData.append("isActive", String(isActive));
+
       if (videoFile) {
         formData.append("video", videoFile);
+      } else if (videoRemoved) {
+        // Signal backend to clear the existing video
+        formData.append("removeVideo", "true");
       }
 
       const response = await fetch(`${apiBase}/review/${reviewItem.id}`, {
@@ -150,6 +157,7 @@ export function EditReviewModal({
   const handleClearVideoPreview = () => {
     setVideoFile(null);
     setVideoPreviewUrl("");
+    setVideoRemoved(true);
     if (videoInputRef.current) {
       videoInputRef.current.value = "";
     }
