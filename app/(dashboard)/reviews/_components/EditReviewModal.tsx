@@ -98,8 +98,12 @@ export function EditReviewModal({
       const formData = new FormData();
       formData.append("name", name.trim());
       formData.append("location", location.trim());
-      formData.append("review", review.trim());
-      formData.append("rating", String(Number(rating)));
+      // Only send review text and rating when there's no video
+      const hasVideo = !!videoFile || (!!videoPreviewUrl && !videoRemoved);
+      if (!hasVideo) {
+        formData.append("review", review.trim());
+        formData.append("rating", String(Number(rating)));
+      }
       formData.append("isActive", String(isActive));
 
       if (videoFile) {
@@ -140,10 +144,13 @@ export function EditReviewModal({
       return;
     }
 
-    const ratingNumber = Number(rating);
-    if (Number.isNaN(ratingNumber) || ratingNumber < 1 || ratingNumber > 5) {
-      toast.error("Rating must be between 1 and 5.");
-      return;
+    const hasVideo = !!videoFile || (!!videoPreviewUrl && !videoRemoved);
+    if (!hasVideo) {
+      const ratingNumber = Number(rating);
+      if (Number.isNaN(ratingNumber) || ratingNumber < 1 || ratingNumber > 5) {
+        toast.error("Rating must be between 1 and 5.");
+        return;
+      }
     }
     updateReviewMutation.mutate();
   };
@@ -212,20 +219,22 @@ export function EditReviewModal({
                 />
               </div>
 
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-[14px] font-medium text-[#2D3D4D]">
-                    Rating (1-5)
-                  </label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={5}
-                    value={rating}
-                    onChange={(e) => setRating(e.target.value)}
-                    className="h-[48px] rounded-[10px] border-0 bg-[#F4F7F9]"
-                  />
-                </div>
+              <div className={`grid grid-cols-1 gap-5 ${!videoPreviewUrl ? "sm:grid-cols-2" : ""}`}>
+                {!videoPreviewUrl && (
+                  <div>
+                    <label className="mb-2 block text-[14px] font-medium text-[#2D3D4D]">
+                      Rating (1-5)
+                    </label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={5}
+                      value={rating}
+                      onChange={(e) => setRating(e.target.value)}
+                      className="h-[48px] rounded-[10px] border-0 bg-[#F4F7F9]"
+                    />
+                  </div>
+                )}
 
                 <div>
                   <label className="mb-2 block text-[14px] font-medium text-[#2D3D4D]">Status</label>

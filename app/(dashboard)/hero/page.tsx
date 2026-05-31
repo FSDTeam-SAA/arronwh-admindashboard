@@ -26,6 +26,7 @@ type BannerItem = {
   imageText: string;
   backgroundColor: string;
   textColor: string;
+  buttonText: string;
 };
 
 type BannerApiResponse = {
@@ -43,6 +44,7 @@ type BannerFormState = {
   imageText: string;
   backgroundColor: string;
   textColor: string;
+  buttonText: string;
   imageFile: File | null;
 };
 
@@ -54,6 +56,7 @@ const EMPTY_FORM: BannerFormState = {
   imageText: "",
   backgroundColor: "#ffffff",
   textColor: "#000000",
+  buttonText: "",
   imageFile: null,
 };
 
@@ -141,6 +144,7 @@ const normalizeBanners = (payload: unknown): BannerItem[] => {
         imageText: String(item.imageText ?? "").trim(),
         backgroundColor: String(item.backgroundColor ?? "#ffffff").trim() || "#ffffff",
         textColor: String(item.textColor ?? "#000000").trim() || "#000000",
+        buttonText: String(item.buttonText ?? "").trim(),
       };
     })
     .filter((item): item is BannerItem => item !== null);
@@ -156,7 +160,7 @@ export default function HeroPage() {
   const [currentImageUrl, setCurrentImageUrl] = useState("");
   const [, setIsLoadingBanners] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  // const [isDeleting, setIsDeleting] = useState(false);
 
   const [newFeature, setNewFeature] = useState("");
 
@@ -222,6 +226,7 @@ export default function HeroPage() {
       imageText: selectedBanner.imageText,
       backgroundColor: selectedBanner.backgroundColor,
       textColor: selectedBanner.textColor,
+      buttonText: selectedBanner.buttonText,
       imageFile: null,
     });
     setCurrentImageUrl(selectedBanner.image);
@@ -287,6 +292,7 @@ export default function HeroPage() {
       payload.append("imageText", formData.imageText.trim());
       payload.append("backgroundColor", formData.backgroundColor.trim());
       payload.append("textColor", formData.textColor.trim());
+      payload.append("buttonText", formData.buttonText.trim());
 
       if (formData.imageFile) {
         payload.append("image", formData.imageFile);
@@ -316,38 +322,38 @@ export default function HeroPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!selectedBanner) {
-      toast.error("Please select a banner first.");
-      return;
-    }
+  // const handleDelete = async () => {
+  //   if (!selectedBanner) {
+  //     toast.error("Please select a banner first.");
+  //     return;
+  //   }
 
-    if (!window.confirm("Delete this banner?")) return;
+  //   if (!window.confirm("Delete this banner?")) return;
 
-    setIsDeleting(true);
-    try {
-      const response = await fetch(`${getBannerEndpoint()}/${selectedBanner._id}`, {
-        method: "DELETE",
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
-      const result = await response.json().catch(() => null);
+  //   setIsDeleting(true);
+  //   try {
+  //     const response = await fetch(`${getBannerEndpoint()}/${selectedBanner._id}`, {
+  //       method: "DELETE",
+  //       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  //     });
+  //     const result = await response.json().catch(() => null);
 
-      if (!response.ok || hasExplicitFailure(result)) {
-        throw new Error(
-          (result as BannerApiResponse | null)?.message ?? "Failed to delete banner."
-        );
-      }
+  //     if (!response.ok || hasExplicitFailure(result)) {
+  //       throw new Error(
+  //         (result as BannerApiResponse | null)?.message ?? "Failed to delete banner."
+  //       );
+  //     }
 
-      toast.success("Banner deleted successfully.");
-      await fetchBanners();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to delete banner."
-      );
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+  //     toast.success("Banner deleted successfully.");
+  //     await fetchBanners();
+  //   } catch (error) {
+  //     toast.error(
+  //       error instanceof Error ? error.message : "Failed to delete banner."
+  //     );
+  //   } finally {
+  //     setIsDeleting(false);
+  //   }
+  // };
 
   return (
     <div className="w-full rounded-xl border bg-white p-6 shadow-lg">
@@ -384,6 +390,16 @@ export default function HeroPage() {
             <Input
               name="subTitle"
               value={formData.subTitle}
+              onChange={handleChange}
+              className="mt-1.5 h-12"
+            />
+          </div>
+
+          <div>
+            <Label className="text-lg font-normal text-[#2D3D4D]">Button Text</Label>
+            <Input
+              name="buttonText"
+              value={formData.buttonText}
               onChange={handleChange}
               className="mt-1.5 h-12"
             />
@@ -514,7 +530,7 @@ export default function HeroPage() {
             >
               {isSaving ? "Saving..." : "Update Banner"}
             </Button>
-            <Button
+            {/* <Button
               type="button"
               variant="destructive"
               onClick={handleDelete}
@@ -522,7 +538,7 @@ export default function HeroPage() {
               className="bg-[red] h-[48px] px-6 text-base text-white"
             >
               {isDeleting ? "Deleting..." : "Delete"}
-            </Button>
+            </Button> */}
           </div>
         </form>
       )}
