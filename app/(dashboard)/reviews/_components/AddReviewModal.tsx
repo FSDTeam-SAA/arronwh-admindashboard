@@ -183,6 +183,7 @@ export function AddReviewModal({ open, onOpenChange }: AddReviewModalProps) {
                   onChange={(e) => setReview(e.target.value)}
                   placeholder="Type review..."
                   className="min-h-[120px] rounded-[10px] border-0 bg-[#F4F7F9] px-4 py-3"
+                  disabled={!!videoPreviewUrl}
                 />
               </div>
 
@@ -223,7 +224,8 @@ export function AddReviewModal({ open, onOpenChange }: AddReviewModalProps) {
                   type="file"
                   accept="video/*"
                   onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
-                  className="h-[48px] rounded-[10px] border-0 bg-[#F4F7F9] file:mr-4 file:rounded-md file:border-0 file:bg-[#E9EEF2] file:px-3 file:py-2 file:text-[13px] file:font-medium file:text-[#2D3D4D]"
+                  className="h-[48px] rounded-[10px] border-0 bg-[#F4F7F9] file:mr-4 file:rounded-md file:border-0 file:bg-[#E9EEF2] file:px-3 file:py-2 file:text-[13px] file:font-medium file:text-[#2D3D4D] disabled:pointer-events-auto"
+                  disabled={review.trim().length > 0}
                 />
                 {videoPreviewUrl && (
                   <div className="relative mt-3">
