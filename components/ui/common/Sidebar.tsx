@@ -27,6 +27,7 @@ import {
   CloudUpload,
   FileQuestionMark,
   MessageSquareQuote,
+  DollarSign,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -79,6 +80,8 @@ const websiteManagementItems = [
   { name: "Terms & Conditions", href: "/terms-conditions", icon: Handshake },
   { name: "FAQ Management", href: "/faq", icon: HelpCircle },
   { name: "Reviews Management", href: "/reviews", icon: MessageSquareQuote },
+{ name: "Quize Price Management", href: "/quize-price-management", icon: DollarSign },
+  
   {
     name: "Refer friends",
     href: "/refer-friends",

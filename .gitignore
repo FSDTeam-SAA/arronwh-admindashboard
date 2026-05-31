@@ -73,3 +73,6 @@ next-env.d.ts
 
 # End of https://www.toptal.com/developers/gitignore/api/nextjs,visualstudiocode,linux
 config.bat
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat

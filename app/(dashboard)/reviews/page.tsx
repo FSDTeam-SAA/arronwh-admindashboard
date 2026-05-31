@@ -188,18 +188,20 @@ export default function ReviewsManagementPage() {
                         </span>
                       </div>
 
-                      <div className="mt-2 flex items-center gap-1">
-                        {Array.from({ length: 5 }).map((_, starIndex) => (
-                          <Star
-                            key={starIndex}
-                            className={`h-4 w-4 ${
-                              starIndex < item.rating
-                                ? "fill-[#00A56F] text-[#00A56F]"
-                                : "fill-[#CFD6DD] text-[#CFD6DD]"
-                            }`}
-                          />
-                        ))}
-                      </div>
+                      {!item.video && (
+                        <div className="mt-2 flex items-center gap-1">
+                          {Array.from({ length: 5 }).map((_, starIndex) => (
+                            <Star
+                              key={starIndex}
+                              className={`h-4 w-4 ${
+                                starIndex < item.rating
+                                  ? "fill-[#00A56F] text-[#00A56F]"
+                                  : "fill-[#CFD6DD] text-[#CFD6DD]"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      )}
 
                       <p className="mt-3 text-[15px] leading-7 text-[#2D3D4D]">{item.review}</p>
 
