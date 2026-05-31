@@ -60,10 +60,12 @@ const crmManagementItems = [
 ];
 
 const websiteManagementItems = [
+  { name: "Update Favicon", href: "/update-favicon", icon: CloudUpload },
   { name: "Update Logo", href: "/update-logo", icon: CloudUpload },
   { name: "Hero section", href: "/hero", icon: InspectionPanel },
   { name: "Our Partners", href: "/our-partners", icon: Handshake },
   { name: "How it works", href: "/how-it-works", icon: FileText },
+  { name: "Footer section", href: "/footer", icon: FileText },
   { name: "Promise Section", href: "/promise", icon: HandFist },
 
   { name: "About Hero section", href: "/about-hero", icon: InspectionPanel },
