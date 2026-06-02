@@ -3,6 +3,7 @@ import { Outfit } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
 import "react-quill/dist/quill.snow.css";
+import "grapesjs/dist/css/grapes.min.css";
 import { Toaster } from "sonner";
 import { QueryClientProvider } from "@/components/provider/QueryClientProvider";
 import AuthSessionProvider from "@/components/provider/AuthSessionProvider";

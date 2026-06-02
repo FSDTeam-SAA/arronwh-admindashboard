@@ -27,6 +27,7 @@ import {
   CloudUpload,
   FileQuestionMark,
   MessageSquareQuote,
+  Mail,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -45,6 +46,7 @@ const navigation = [
     icon: Package,
   },
   { name: "Subscriber Management", href: "/subscribers", icon: Podcast },
+  { name: "Email Templates", href: "/email-templates", icon: Mail },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
