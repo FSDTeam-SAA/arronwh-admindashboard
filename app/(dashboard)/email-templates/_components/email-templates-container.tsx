@@ -114,6 +114,38 @@ const splitStyleTags = (html: string) => {
   };
 };
 
+const rawTableRowTokens = ["quote.couponRow", "quote.quizRows"] as const;
+
+const createRawTableRowPlaceholder = (token: string) => `
+<tr data-email-raw-row-token="${token}">
+  <td colspan="2" style="padding:10px 0;font-size:13px;color:#43505c;text-align:center;border:1px dashed #cbd5e1;background:#f8fafc;">
+    {{{${token}}}}
+  </td>
+</tr>`;
+
+const restoreRawTableRowTokens = (html: string) =>
+  rawTableRowTokens.reduce((current, token) => {
+    const placeholderPattern = new RegExp(
+      `<tr\\b(?=[^>]*data-email-raw-row-token=["']${token}["'])[^>]*>[\\s\\S]*?<\\/tr>`,
+      "gi",
+    );
+
+    return current.replace(placeholderPattern, `{{{${token}}}}`);
+  }, html);
+
+const protectRawTableRowTokens = (html: string) => {
+  const restored = restoreRawTableRowTokens(html);
+
+  return rawTableRowTokens.reduce((current, token) => {
+    const tokenPattern = new RegExp(
+      `{{{\\s*${token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*}}}`,
+      "g",
+    );
+
+    return current.replace(tokenPattern, createRawTableRowPlaceholder(token));
+  }, restored);
+};
+
 export default function EmailTemplatesContainer() {
   const { data: session, status: sessionStatus } = useSession();
   const token = session?.accessToken;
@@ -290,11 +322,15 @@ export default function EmailTemplatesContainer() {
     const editor = editorRef.current;
     if (!editor || !selectedTemplate) return;
 
-    const parts = extractEmailParts(selectedTemplate.html);
+    const editorSafeHtml = protectRawTableRowTokens(selectedTemplate.html);
+    const parts = extractEmailParts(editorSafeHtml);
     emailPartsRef.current = parts;
     setSentPreviewHtml(selectedTemplate.html);
 
-    if (selectedTemplate.grapesJsProject) {
+    if (
+      selectedTemplate.grapesJsProject &&
+      selectedTemplate.key !== "quote-summary"
+    ) {
       editor.loadProjectData(selectedTemplate.grapesJsProject);
     } else {
       editor.setStyle(parts.css);
@@ -325,7 +361,7 @@ export default function EmailTemplatesContainer() {
       .filter(Boolean)
       .join("\n");
 
-    return `<!doctype html>
+    return restoreRawTableRowTokens(`<!doctype html>
 <html lang="en">
 <head>
 ${headWithoutStyles}
@@ -334,7 +370,7 @@ ${css.trim() ? `<style>\n${css}\n</style>` : ""}
 <body${bodyAttributes}>
 ${splitExported.html}
 </body>
-</html>`;
+</html>`);
   }, [selectedTemplate?.html]);
 
   const refreshSentPreview = useCallback(() => {
